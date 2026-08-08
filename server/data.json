@@ -1,0 +1,250 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Ajmal (Owner)",
+      "username": "@OWNERAJMAL69",
+      "password": "AJMA6958@",
+      "role": "owner",
+      "createdAt": "2026-08-08T09:31:14.395Z"
+    },
+    {
+      "id": 2,
+      "name": "Kaatya (Developer)",
+      "username": "@KAATYA_OG_",
+      "password": "KAATYA6547",
+      "role": "developer",
+      "createdAt": "2026-08-08T09:31:14.395Z"
+    }
+  ],
+  "paymentConfig": {
+    "qrCode": {
+      "enabled": true,
+      "upiId": "qualityglass@upi",
+      "accountHolder": "Quality Glass Emporium",
+      "qrImageUrl": "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium",
+      "instructions": "Scan the Admin uploaded QR code using GPay, PhonePe, Paytm, or BHIM. Enter your 12-digit UTR transaction reference number and upload the screenshot proof."
+    },
+    "bankTransfer": {
+      "enabled": true,
+      "accountHolder": "Quality Glass Emporium",
+      "bankName": "State Bank of India",
+      "accountNumber": "389201004921",
+      "ifscCode": "SBIN0000465",
+      "branch": "Raebareli Main Branch",
+      "instructions": "Transfer total order amount via IMPS / NEFT / RTGS to the store bank account. Enter your 12-digit Bank UTR reference number and upload the payment screenshot proof."
+    }
+  },
+  "settings": {
+    "storeName": "Quality Glass Emporium",
+    "tagline": "Bespoke Framing, Photo Studio & Customized Gifts",
+    "email": "contact@qualityglassemporium.com",
+    "phone": "+91 94150 12345",
+    "address": "Belliganj Malik Mau Road, Near Hotel Ganesh, PNT Colony, Raebareli-229001, Uttar Pradesh",
+    "currency": "₹",
+    "logo": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=400&q=80",
+    "metaTitle": "Quality Glass Emporium | Custom Frames, Passport Studio & Gifts",
+    "metaDescription": "Bespoke photo frames, acrylic sheets, canvas prints, passport photos, photo lamps, custom mugs & gifts in Raebareli.",
+    "metaKeywords": "photo frames, acrylic frames, canvas prints, passport photos, photo studio, custom gifts, photo lamps, mugs, keychains, Raebareli",
+    "freeShippingThreshold": 999,
+    "flatShippingRate": 79,
+    "taxRatePercentage": 18
+  },
+  "categories": [
+    {
+      "id": "photo-frames",
+      "name": "Photo Frames",
+      "slug": "photo-frames",
+      "description": "Bespoke Wood, Metal & Glass Frames",
+      "image": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "id": "acrylic-frames",
+      "name": "Acrylic Frames & Sheets",
+      "slug": "acrylic-frames",
+      "description": "Luminous Frameless Acrylic Blocks & Custom Cut Sheets",
+      "image": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "id": "canvas-prints",
+      "name": "Canvas Prints",
+      "slug": "canvas-prints",
+      "description": "Gallery Wrapped Cotton Canvas Art Prints",
+      "image": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "id": "photo-studio",
+      "name": "Photo Studio & Passport",
+      "slug": "photo-studio",
+      "description": "Digital Photo Printing, Passport/Visa Photos & Lamination",
+      "image": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "id": "custom-gifts",
+      "name": "Customized Gifts",
+      "slug": "custom-gifts",
+      "description": "Photo Lamps, Custom Mugs, T-Shirts, Keychains & Covers",
+      "image": "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "id": "photo-albums",
+      "name": "Photo Albums & Memory Books",
+      "slug": "photo-albums",
+      "description": "Leatherette & Hardcover Wedding & Event Albums",
+      "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-1",
+      "name": "Bespoke Teak Wood Photo Frame 8x10",
+      "categoryId": "photo-frames",
+      "price": 799,
+      "originalPrice": 1299,
+      "stock": 25,
+      "description": "Handcrafted premium teak wood picture frame with optical clear float glass.",
+      "image": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+      "isCustomizable": true,
+      "isFrame": true,
+      "frameMaterial": "Teak Wood",
+      "slug": "bespoke-teak-wood-photo-frame-8x10",
+      "rating": 5,
+      "reviewsCount": 1,
+      "createdAt": "2026-08-08T13:11:32.006Z"
+    },
+    {
+      "id": "prod-2",
+      "name": "Luminous Acrylic Floating Block",
+      "categoryId": "acrylic-frames",
+      "price": 1499,
+      "originalPrice": 1999,
+      "stock": 15,
+      "description": "Ultra-clear crystal acrylic block with magnetic corners for instant photo swaps.",
+      "image": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80",
+      "isCustomizable": true,
+      "isFrame": true,
+      "frameMaterial": "Acrylic Block",
+      "slug": "luminous-acrylic-floating-block",
+      "rating": 5,
+      "reviewsCount": 0,
+      "createdAt": "2026-08-08T13:11:32.006Z"
+    },
+    {
+      "id": "prod-3",
+      "name": "Personalized 3D LED Photo Lamp",
+      "categoryId": "custom-gifts",
+      "price": 999,
+      "originalPrice": 1499,
+      "stock": 30,
+      "description": "Custom laser engraved acrylic night light lamp with warm glowing wooden LED base.",
+      "image": "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=800&q=80",
+      "isCustomizable": true,
+      "isFrame": false,
+      "frameMaterial": "Acrylic & Wood",
+      "slug": "personalized-3d-led-photo-lamp",
+      "rating": 5,
+      "reviewsCount": 2,
+      "createdAt": "2026-08-08T13:11:32.006Z"
+    }
+  ],
+  "mainPage": {
+    "announcementBar": {
+      "enabled": true,
+      "text": "⚡ Special Offer: Free Express Shipping on Custom Frame & Glass Orders above ₹999 in Raebareli!",
+      "link": "/collection",
+      "bgStyle": "primary"
+    },
+    "hero": {
+      "badge": "Quality Glass Emporium • Raebareli",
+      "title": "Curate Your Space with Bespoke Framing.",
+      "subtitle": "Museum-quality bespoke wood, metal & floating acrylic frames designed to elevate your memories. Handcrafted precision meets digital photo studio.",
+      "bgImage": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80",
+      "primaryCtaText": "🎨 Launch Frame Studio",
+      "primaryCtaLink": "frame-studio",
+      "secondaryCtaText": "📸 Passport Photo Studio",
+      "secondaryCtaLink": "passport-studio"
+    },
+    "promo": {
+      "badge": "Specialized Gift Shop",
+      "title": "Personalized 3D Photo Lamps, Custom Mugs & Keychains",
+      "description": "Create unforgettable keepsakes! Print your loved ones' photos on warm glowing 3D acrylic lamps, heat-sensitive magic mugs, customized T-shirts, mobile cases, and keychains with lifetime print guarantee.",
+      "image": "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=1000&q=80",
+      "ctaText": "Shop Custom Gifts",
+      "ctaLink": "custom-gifts"
+    },
+    "features": [
+      {
+        "icon": "workspace_premium",
+        "title": "Museum-Grade Quality",
+        "description": "Organic solid wood moulding & 99.9% optical clear glass."
+      },
+      {
+        "icon": "center_focus_strong",
+        "title": "Instant AI Passport Studio",
+        "description": "Compliant biometric photos with background replacement."
+      },
+      {
+        "icon": "palette",
+        "title": "Custom 3D Gift Printing",
+        "description": "Personalized photo lamps, mugs, keychains & acrylic cutouts."
+      },
+      {
+        "icon": "local_shipping",
+        "title": "Raebareli Express Delivery",
+        "description": "Same-day doorstep delivery & local store pickup available."
+      }
+    ],
+    "sectionHeadlines": {
+      "categoriesTitle": "Framing & Gift Collections",
+      "categoriesSubtitle": "Store Taxonomy",
+      "productsTitle": "Trending Framing & Custom Gifts",
+      "productsSubtitle": "Handcrafted Products"
+    }
+  },
+  "banners": [
+    {
+      "id": "banner-1",
+      "title": "Curate Your Space with Bespoke Framing",
+      "subtitle": "Museum-quality wooden & acrylic frames handcrafted with precision and glass clarity.",
+      "imageUrl": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80",
+      "ctaText": "Launch Frame Studio",
+      "ctaLink": "/frame-studio",
+      "displayOrder": 1,
+      "isActive": true
+    },
+    {
+      "id": "banner-2",
+      "title": "Instant Passport & Visa Photo Studio",
+      "subtitle": "Compliant high-resolution biometric prints with instant white/blue background styling.",
+      "imageUrl": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1600&q=80",
+      "ctaText": "Order Passport Prints",
+      "ctaLink": "/passport-studio",
+      "displayOrder": 2,
+      "isActive": true
+    }
+  ],
+  "coupons": [
+    {
+      "id": "coup-1",
+      "code": "WELCOME10",
+      "discountType": "percentage",
+      "discountValue": 10,
+      "minSpend": 499,
+      "expiryDate": "2027-12-31",
+      "usageCount": 14,
+      "isActive": true
+    },
+    {
+      "id": "coup-2",
+      "code": "LUXE200",
+      "discountType": "flat",
+      "discountValue": 200,
+      "minSpend": 1499,
+      "expiryDate": "2027-12-31",
+      "usageCount": 8,
+      "isActive": true
+    }
+  ],
+  "orders": [],
+  "reviews": []
+}
