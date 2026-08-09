@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth, onLogout }) {
+export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth, onLogout, themeMode, toggleTheme }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -12,7 +12,7 @@ export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth,
   };
 
   return (
-    <nav className="bg-background/95 backdrop-blur-md fixed top-0 w-full z-50 border-b border-outline-variant transition-transform duration-300">
+    <nav className="bg-background/95 backdrop-blur-md fixed top-0 w-full z-50 border-b border-outline-variant transition-colors duration-300">
       <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop flex justify-between items-center h-20">
         
         {/* Store Logo & Title */}
@@ -76,8 +76,9 @@ export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth,
           </button>
         </div>
 
-        {/* Action Controls: Search, Cart, Auth / Admin */}
+        {/* Action Controls: Search, Theme Toggle, Cart, Auth / Admin */}
         <div className="flex items-center space-x-3">
+          
           {/* Quick Search Form */}
           <form onSubmit={handleSearchSubmit} className="hidden lg:flex items-center relative">
             <input
@@ -91,6 +92,20 @@ export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth,
               <span className="material-symbols-outlined text-sm">search</span>
             </button>
           </form>
+
+          {/* Theme Color Switcher Button (Green/Black vs Green/White) */}
+          <button
+            onClick={toggleTheme}
+            className="bg-surface-container-high border border-outline-variant hover:border-primary text-primary px-3 py-1.5 rounded text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
+            title={themeMode === 'light' ? "Switch to Dark Theme (Green & Black)" : "Switch to Light Theme (Green & White)"}
+          >
+            <span className="material-symbols-outlined text-base">
+              {themeMode === 'light' ? 'dark_mode' : 'light_mode'}
+            </span>
+            <span className="hidden sm:inline uppercase text-[10px] tracking-wider">
+              {themeMode === 'light' ? 'Green & Black' : 'Green & White'}
+            </span>
+          </button>
 
           {/* Cart Icon */}
           <button 
@@ -152,42 +167,54 @@ export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth,
             <span className="material-symbols-outlined">{mobileMenuOpen ? 'close' : 'menu'}</span>
           </button>
         </div>
-
       </div>
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-surface-container-high border-t border-outline-variant px-6 py-4 space-y-3">
+        <div className="md:hidden bg-surface-container-low border-b border-outline-variant px-margin-mobile py-4 space-y-3">
           <button
             onClick={() => { setActivePage('home'); setMobileMenuOpen(false); }}
-            className="block w-full text-left font-label-bold text-sm uppercase text-on-surface hover:text-primary py-1"
+            className="block w-full text-left font-label-bold text-xs uppercase text-on-surface hover:text-primary py-2"
           >
             Home
           </button>
           <button
             onClick={() => { setActivePage('collection'); setMobileMenuOpen(false); }}
-            className="block w-full text-left font-label-bold text-sm uppercase text-on-surface hover:text-primary py-1"
+            className="block w-full text-left font-label-bold text-xs uppercase text-on-surface hover:text-primary py-2"
           >
             Catalog
           </button>
           <button
             onClick={() => { setActivePage('frame-studio'); setMobileMenuOpen(false); }}
-            className="block w-full text-left font-label-bold text-sm uppercase text-primary py-1"
+            className="block w-full text-left font-label-bold text-xs uppercase text-primary font-bold py-2"
           >
-            🎨 Frame Studio
+            🎨 Custom Frame Studio
           </button>
           <button
             onClick={() => { setActivePage('passport-studio'); setMobileMenuOpen(false); }}
-            className="block w-full text-left font-label-bold text-sm uppercase text-on-surface hover:text-primary py-1"
+            className="block w-full text-left font-label-bold text-xs uppercase text-on-surface hover:text-primary py-2"
           >
             📸 Passport Photo Studio
           </button>
           <button
             onClick={() => { setActivePage('order-tracking'); setMobileMenuOpen(false); }}
-            className="block w-full text-left font-label-bold text-sm uppercase text-on-surface hover:text-primary py-1"
+            className="block w-full text-left font-label-bold text-xs uppercase text-on-surface hover:text-primary py-2"
           >
             Track Order
           </button>
+          
+          <div className="pt-2 border-t border-outline-variant flex items-center justify-between">
+            <span className="text-xs text-on-surface font-semibold">Theme Palette:</span>
+            <button
+              onClick={toggleTheme}
+              className="bg-primary/10 border border-primary text-primary px-3 py-1 rounded text-xs font-bold flex items-center space-x-1"
+            >
+              <span className="material-symbols-outlined text-sm">
+                {themeMode === 'light' ? 'dark_mode' : 'light_mode'}
+              </span>
+              <span>{themeMode === 'light' ? 'Switch to Dark' : 'Switch to Light'}</span>
+            </button>
+          </div>
         </div>
       )}
     </nav>

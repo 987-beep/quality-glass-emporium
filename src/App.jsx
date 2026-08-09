@@ -48,6 +48,35 @@ export default function App() {
   // Toast notifications
   const [toast, setToast] = useState(null);
 
+  // Dynamic Theme Mode State (Green & Black vs Green & White)
+  const [themeMode, setThemeMode] = useState(() => {
+    try {
+      return localStorage.getItem('qge_theme_mode') || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      document.documentElement.setAttribute('data-theme', themeMode);
+      if (themeMode === 'light') {
+        document.documentElement.classList.add('light-theme');
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.remove('light-theme');
+        document.documentElement.classList.add('dark');
+      }
+      localStorage.setItem('qge_theme_mode', themeMode);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [themeMode]);
+
+  const toggleTheme = () => {
+    setThemeMode(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
   // Save Cart to LocalStorage
   useEffect(() => {
     try {
@@ -121,6 +150,8 @@ export default function App() {
           user={user}
           onOpenAuth={() => setShowAuthModal(true)}
           onLogout={handleLogout}
+          themeMode={themeMode}
+          toggleTheme={toggleTheme}
         />
       )}
 

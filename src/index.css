@@ -2,9 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Default Dark Theme (Green & Black Combination) */
+  --color-bg: #121414;
+  --color-surface-dim: #121414;
+  --color-on-bg: #e2e2e2;
+  --color-on-surface: #e2e2e2;
+  --color-primary: #00e676;
+  --color-on-primary: #003918;
+  --color-primary-fixed: #62ff96;
+  --color-outline: #859585;
+  --color-outline-variant: #3b4a3d;
+  --color-on-surface-variant: #bacbb9;
+  --color-surface: #121414;
+  --color-surface-container: #1e2020;
+  --color-surface-container-high: #282a2b;
+  --color-surface-container-low: #1a1c1c;
+  --color-surface-container-lowest: #0c0f0f;
+  --color-surface-container-highest: #333535;
+  --scrollbar-track: #121414;
+  --scrollbar-thumb: #333535;
+}
+
+/* Light Theme (Emerald Green & White Combination) */
+:root[data-theme='light'], .light-theme {
+  --color-bg: #f8faf9;
+  --color-surface-dim: #f1f5f3;
+  --color-on-bg: #0f172a;
+  --color-on-surface: #0f172a;
+  --color-primary: #059669;
+  --color-on-primary: #ffffff;
+  --color-primary-fixed: #047857;
+  --color-outline: #94a3b8;
+  --color-outline-variant: #cbd5e1;
+  --color-on-surface-variant: #475569;
+  --color-surface: #ffffff;
+  --color-surface-container: #f0f7f3;
+  --color-surface-container-high: #ffffff;
+  --color-surface-container-low: #f8faf9;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-highest: #e2efe7;
+  --scrollbar-track: #f1f5f3;
+  --scrollbar-thumb: #cbd5e1;
+}
+
 @layer base {
   body {
-    @apply bg-background text-on-background font-sans antialiased overflow-x-hidden selection:bg-surface-container-high selection:text-primary;
+    background-color: var(--color-bg);
+    color: var(--color-on-bg);
+    @apply font-sans antialiased overflow-x-hidden transition-colors duration-300;
   }
 }
 
@@ -32,14 +78,14 @@
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #121414;
+  background: var(--scrollbar-track);
 }
 ::-webkit-scrollbar-thumb {
-  background: #333535;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #859585;
+  background: var(--color-primary);
 }
 
 .material-symbols-outlined {
