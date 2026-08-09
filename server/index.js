@@ -579,19 +579,21 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'All fields (Name, Username ID, Password) are required' });
     }
 
-    const cleanUsername = username.trim();
-    if (cleanUsername.length < 3) {
+    const rawUser = username.trim();
+    if (rawUser.length < 3) {
       return res.status(400).json({ error: 'Username must be at least 3 characters long' });
     }
 
-    const existing = await query(`SELECT id FROM users WHERE LOWER(username) = ?`, [cleanUsername.toLowerCase()]);
+    const cleanInput = rawUser.toLowerCase().replace(/^@/, '');
+    const formattedUsername = rawUser.startsWith('@') ? rawUser : `@${rawUser}`;
+
+    // Query for existing username
+    const existing = await query(`SELECT id FROM users WHERE LOWER(username) = ?`, [cleanInput]);
     if (existing && existing.length > 0) {
       return res.status(400).json({ error: 'This Username ID is already taken. Please choose another.' });
     }
 
-    const formattedUsername = cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`;
     const newId = `usr-${Date.now()}`;
-
     await query(
       `INSERT INTO users (id, name, username, password, role) VALUES (?, ?, ?, ?, 'customer')`,
       [newId, name, formattedUsername, password]

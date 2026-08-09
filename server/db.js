@@ -195,7 +195,13 @@ export async function query(sqlText, params = []) {
       if (sqlUpper.includes('FROM PRODUCTS')) return memoryStore.products;
       if (sqlUpper.includes('FROM CATEGORIES')) return memoryStore.categories;
       if (sqlUpper.includes('FROM BANNERS')) return memoryStore.banners;
-      if (sqlUpper.includes('FROM USERS')) return memoryStore.users;
+      if (sqlUpper.includes('FROM USERS')) {
+        if (params.length > 0 && typeof params[0] === 'string') {
+          const target = params[0].trim().toLowerCase().replace(/^@/, '');
+          return memoryStore.users.filter(u => u.username && u.username.trim().toLowerCase().replace(/^@/, '') === target);
+        }
+        return memoryStore.users;
+      }
       if (sqlUpper.includes('FROM ORDERS')) return memoryStore.orders;
       if (sqlUpper.includes('FROM REVIEWS')) return memoryStore.reviews;
       if (sqlUpper.includes('FROM COUPONS')) return memoryStore.coupons;
@@ -249,6 +255,11 @@ export async function query(sqlText, params = []) {
         created_at: new Date().toISOString()
       };
       memoryStore.products.unshift(newProd);
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('INSERT INTO USERS')) {
+      const [newId, name, username, password, role] = params;
+      const newUser = { id: newId, name, username, password, role: role || 'customer', created_at: new Date().toISOString() };
+      memoryStore.users.push(newUser);
       return [{ id: 1, changes: 1 }];
     } else if (sqlUpper.startsWith('UPDATE ORDERS')) {
       const orderId = params[params.length - 1];
