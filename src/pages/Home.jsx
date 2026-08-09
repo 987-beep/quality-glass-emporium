@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { ProductCard } from '../components/ProductCard';
-import { apiFetch, getLocalProducts, syncProductsWithLocal } from '../api';
+import { apiFetch, getAssetUrl, getLocalProducts, syncProductsWithLocal } from '../api';
+
+const DEFAULT_HERO_BG = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80";
+const DEFAULT_CAT_IMG = "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80";
+const DEFAULT_PROMO_IMG = "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=1000&q=80";
 
 export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameStudio }) {
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -42,7 +46,7 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
     badge: "Quality Glass Emporium • Raebareli",
     title: "Curate Your Space with Bespoke Framing.",
     subtitle: "Museum-quality bespoke wood, metal & floating acrylic frames designed to elevate your memories. Handcrafted precision meets digital photo studio.",
-    bgImage: banners[0]?.imageUrl || "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80",
+    bgImage: banners[0]?.imageUrl || DEFAULT_HERO_BG,
     primaryCtaText: "🎨 Launch Frame Studio",
     primaryCtaLink: "frame-studio",
     secondaryCtaText: "📸 Passport Photo Studio",
@@ -53,7 +57,7 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
     badge: "Specialized Gift Shop",
     title: "Personalized 3D Photo Lamps, Custom Mugs & Keychains",
     description: "Create unforgettable keepsakes! Print your loved ones' photos on warm glowing 3D acrylic lamps, heat-sensitive magic mugs, customized T-shirts, mobile cases, and keychains with lifetime print guarantee.",
-    image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=1000&q=80",
+    image: DEFAULT_PROMO_IMG,
     ctaText: "Shop Custom Gifts",
     ctaLink: "custom-gifts"
   };
@@ -120,9 +124,13 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
       <section className="relative w-full h-[640px] md:h-[720px] flex items-center justify-center overflow-hidden border-b border-outline-variant">
         <div className="absolute inset-0 z-0">
           <img
-            src={hero.bgImage}
+            src={getAssetUrl(hero.bgImage || hero.image || banners[0]?.imageUrl)}
             alt="Luxury Storefront Hero"
             className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = DEFAULT_HERO_BG;
+            }}
           />
           <div className="absolute inset-0 bg-background/70 backdrop-blur-[2px]" />
         </div>
@@ -196,9 +204,13 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
               className="group relative h-64 rounded overflow-hidden cursor-pointer border border-outline-variant/60 hover:border-primary transition-all duration-300 shadow-md"
             >
               <img
-                src={cat.image}
+                src={getAssetUrl(cat.image)}
                 alt={cat.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = DEFAULT_CAT_IMG;
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent flex flex-col justify-end p-6">
                 <span className="text-[10px] uppercase font-label-bold text-primary tracking-widest">Collection</span>
@@ -293,14 +305,17 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
 
           <div className="relative aspect-16/10 rounded overflow-hidden border border-outline-variant/60 shadow-2xl">
             <img
-              src={promo.image}
+              src={getAssetUrl(promo.image)}
               alt="Custom Gifts Promo"
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = DEFAULT_PROMO_IMG;
+              }}
             />
           </div>
         </div>
       </section>
-
     </div>
   );
 }

@@ -76,6 +76,10 @@ export function ProductDetail({ product, onAddToCart, onOpenFrameStudio, setActi
               src={getAssetUrl(selectedImage)}
               alt={product.name}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80";
+              }}
             />
           </div>
 
@@ -89,7 +93,15 @@ export function ProductDetail({ product, onAddToCart, onOpenFrameStudio, setActi
                     selectedImage === imgUrl ? 'border-primary ring-2 ring-primary/40' : 'border-outline-variant opacity-70 hover:opacity-100'
                   }`}
                 >
-                  <img src={getAssetUrl(imgUrl)} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={getAssetUrl(imgUrl)}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80";
+                    }}
+                  />
                 </button>
               ))}
             </div>

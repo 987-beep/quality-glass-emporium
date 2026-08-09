@@ -1,6 +1,8 @@
 import React from 'react';
 import { getAssetUrl } from '../api';
 
+const DEFAULT_PRODUCT_FALLBACK = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80';
+
 export function ProductCard({ product, onAddToCart, onSelectProduct, onOpenFrameStudio }) {
   return (
     <div className="bg-surface-container-low border border-outline-variant/60 rounded overflow-hidden group hover:border-primary/50 transition-all duration-300 flex flex-col justify-between">
@@ -11,6 +13,10 @@ export function ProductCard({ product, onAddToCart, onSelectProduct, onOpenFrame
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = DEFAULT_PRODUCT_FALLBACK;
+          }}
         />
         {product.originalPrice > product.price && (
           <span className="absolute top-3 left-3 bg-primary text-on-primary font-label-bold text-[10px] uppercase font-bold px-2 py-0.5 rounded">
@@ -28,11 +34,11 @@ export function ProductCard({ product, onAddToCart, onSelectProduct, onOpenFrame
       <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
         <div>
           <div className="flex items-center justify-between text-xs text-on-surface-variant mb-1">
-            <span className="uppercase tracking-wider font-semibold text-primary/80">{product.categoryId.replace('-', ' ')}</span>
+            <span className="uppercase tracking-wider font-semibold text-primary/80">{product.categoryId ? product.categoryId.replace('-', ' ') : 'Catalog'}</span>
             <div className="flex items-center space-x-1 text-amber-400">
               <span className="material-symbols-outlined text-sm font-fill">star</span>
-              <span className="font-semibold text-on-surface text-xs">{product.rating}</span>
-              <span className="text-on-surface-variant text-[10px]">({product.reviewsCount})</span>
+              <span className="font-semibold text-on-surface text-xs">{product.rating || 5.0}</span>
+              <span className="text-on-surface-variant text-[10px]">({product.reviewsCount || 0})</span>
             </div>
           </div>
 
