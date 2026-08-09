@@ -5,7 +5,7 @@ import fs from 'fs';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { fileURLToPath } from 'url';
-import { query, initDb, defaultUsers } from './db.js';
+import { query, initDb } from './db.js';
 import { generateToken, verifyToken, authMiddleware, adminOnlyMiddleware } from './auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -247,7 +247,7 @@ app.post('/api/upload', upload.any(), async (req, res) => {
       process.env.CLOUDINARY_URL
     );
 
-    if (isCloudinaryConfigured) {
+    if (isCloudinaryConfigured && file.buffer) {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: 'quality_glass_emporium',
@@ -268,7 +268,9 @@ app.post('/api/upload', upload.any(), async (req, res) => {
       const filename = 'user-photo-' + uniqueSuffix + ext;
       const filePath = path.join(uploadDir, filename);
 
-      fs.writeFileSync(filePath, file.buffer);
+      if (file.buffer) {
+        fs.writeFileSync(filePath, file.buffer);
+      }
       const fileUrl = `/uploads/${filename}`;
       return res.json({ url: fileUrl, filename });
     }
@@ -345,10 +347,10 @@ app.get('/api/payment-config', async (req, res) => {
 // Create Order (Customer)
 app.post('/api/orders', async (req, res) => {
   try {
-    const { 
-      customerName, customerEmail, customerPhone, shippingAddress, 
+    const {
+      customerName, customerEmail, customerPhone, shippingAddress,
       items, totalAmount, discountAmount, paymentMethod, couponCode,
-      utrNumber, paymentScreenshot, userId: bodyUserId, username: bodyUsername 
+      utrNumber, paymentScreenshot, userId: bodyUserId, username: bodyUsername
     } = req.body;
 
     if (!items || items.length === 0) {
@@ -560,35 +562,15 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Username ID and password are required' });
     }
 
-    await initDb().catch(() => {});
-
     const rawInput = username.trim().toLowerCase();
     const normInput = rawInput.replace(/^@/, '');
 
-    let rows = [];
-    try {
-      rows = await query(`SELECT * FROM users`);
-    } catch (err) {
-      console.warn("DB user query notice:", err.message);
-    }
-
-    if (!Array.isArray(rows) || rows.length === 0) {
-      rows = defaultUsers;
-    }
-
-    let user = rows.find(u => {
+    const rows = await query(`SELECT * FROM users`);
+    const user = rows.find(u => {
       if (!u.username) return false;
       const normUser = u.username.trim().toLowerCase().replace(/^@/, '');
       return normUser === normInput || u.username.trim().toLowerCase() === rawInput;
     });
-
-    if (!user && Array.isArray(defaultUsers)) {
-      user = defaultUsers.find(u => {
-        if (!u.username) return false;
-        const normUser = u.username.trim().toLowerCase().replace(/^@/, '');
-        return normUser === normInput || u.username.trim().toLowerCase() === rawInput;
-      });
-    }
 
     if (!user || user.password !== password) {
       return res.status(401).json({ error: 'Invalid Username ID or Password credentials' });
