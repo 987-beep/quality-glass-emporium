@@ -42,7 +42,7 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
       });
   }, []);
 
-  const hero = mainPageConfig?.hero || {
+  const defaultHero = {
     badge: "Quality Glass Emporium • Raebareli",
     title: "Curate Your Space with Bespoke Framing.",
     subtitle: "Museum-quality bespoke wood, metal & floating acrylic frames designed to elevate your memories. Handcrafted precision meets digital photo studio.",
@@ -52,8 +52,9 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
     secondaryCtaText: "📸 Passport Photo Studio",
     secondaryCtaLink: "passport-studio"
   };
+  const hero = { ...defaultHero, ...(mainPageConfig?.hero || {}) };
 
-  const promo = mainPageConfig?.promo || {
+  const defaultPromo = {
     badge: "Specialized Gift Shop",
     title: "Personalized 3D Photo Lamps, Custom Mugs & Keychains",
     description: "Create unforgettable keepsakes! Print your loved ones' photos on warm glowing 3D acrylic lamps, heat-sensitive magic mugs, customized T-shirts, mobile cases, and keychains with lifetime print guarantee.",
@@ -61,15 +62,17 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
     ctaText: "Shop Custom Gifts",
     ctaLink: "custom-gifts"
   };
+  const promo = { ...defaultPromo, ...(mainPageConfig?.promo || {}) };
 
-  const headlines = mainPageConfig?.sectionHeadlines || {
+  const defaultHeadlines = {
     categoriesTitle: "Framing & Gift Collections",
     categoriesSubtitle: "Store Taxonomy",
     productsTitle: "Trending Framing & Custom Gifts",
     productsSubtitle: "Handcrafted Products"
   };
+  const headlines = { ...defaultHeadlines, ...(mainPageConfig?.sectionHeadlines || {}) };
 
-  const features = mainPageConfig?.features || [
+  const defaultFeatures = [
     {
       icon: "workspace_premium",
       title: "Museum-Grade Quality",
@@ -91,6 +94,9 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
       description: "Same-day doorstep delivery & local store pickup available."
     }
   ];
+  const features = (mainPageConfig?.features && mainPageConfig.features.length > 0)
+    ? mainPageConfig.features
+    : defaultFeatures;
 
   const announcement = mainPageConfig?.announcementBar;
 

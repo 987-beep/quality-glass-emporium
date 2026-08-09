@@ -101,6 +101,21 @@ app.get('/api/settings', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+// Public Main Page Layout & Content
+app.get('/api/main-page', async (req, res) => {
+  try {
+    const rows = await query(`SELECT hero_config, promo_config, announcement_bar, section_headlines, features FROM site_settings WHERE id = 1`);
+    const r = rows[0] || {};
+    res.json({
+      hero: parseJsonField(r.hero_config),
+      promo: parseJsonField(r.promo_config),
+      announcementBar: parseJsonField(r.announcement_bar),
+      sectionHeadlines: parseJsonField(r.section_headlines),
+      features: parseJsonField(r.features, [])
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Categories
