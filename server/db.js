@@ -33,36 +33,6 @@ if (isPostgres) {
   }
 }
 
-// Universal Async Query Runner
-export async function query(sqlText, params = []) {
-  if (isPostgres && pgPool) {
-    let pgSql = sqlText;
-    let paramIndex = 1;
-    while (pgSql.includes('?')) {
-      pgSql = pgSql.replace('?', `$${paramIndex++}`);
-    }
-    const res = await pgPool.query(pgSql, params);
-    return res.rows;
-  } else if (sqliteDb) {
-    return new Promise((resolve, reject) => {
-      const trimmed = sqlText.trim().toUpperCase();
-      if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) {
-        sqliteDb.all(sqlText, params, (err, rows) => {
-          if (err) resolve([]);
-          else resolve(rows || []);
-        });
-      } else {
-        sqliteDb.run(sqlText, params, function (err) {
-          if (err) resolve([{ id: 1, changes: 1 }]);
-          else resolve([{ id: this.lastID, changes: this.changes }]);
-        });
-      }
-    });
-  } else {
-    return [];
-  }
-}
-
 // Staff Admin Accounts (Owner & Developer)
 export const defaultUsers = [
   { id: "usr-1", name: "Ajmal (Owner)", username: "@OWNERAJMAL69", password: "AJMA6958@", role: "owner" },
@@ -116,7 +86,7 @@ const defaultProducts = [
     id: "prod-3",
     name: "Personalized Glowing 3D Photo Lamp",
     slug: "personalized-glowing-3d-photo-lamp",
-    category_id: "custom-gifts",
+    category_id: "gifts",
     price: 1199,
     original_price: 1699,
     stock: 30,
@@ -137,224 +107,196 @@ const defaultBanners = [
     title: "Curate Your Space with Bespoke Framing",
     subtitle: "Museum-quality wooden & acrylic frames handcrafted with precision and glass clarity.",
     image_url: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80",
-    cta_text: "Launch Frame Studio",
-    cta_link: "frame-studio",
+    cta_text: "Explore Collections",
+    cta_link: "/collection",
     display_order: 1,
     is_active: true
   },
   {
     id: "banner-2",
-    title: "Instant Passport & Visa Photo Studio",
-    subtitle: "Compliant high-resolution biometric prints with instant white/blue background styling.",
-    image_url: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1600&q=80",
-    cta_text: "Order Passport Prints",
-    cta_link: "passport-studio",
+    title: "Custom Photo Studio & Passport Prints",
+    subtitle: "Instant passport photos, acrylic wall sheets & personalized gifts crafted with love.",
+    image_url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1600&q=80",
+    cta_text: "Passport Photo Studio",
+    cta_link: "/passport-studio",
     display_order: 2,
     is_active: true
   }
 ];
 
-let dbInitialized = false;
+// Memory Data Store for High-Performance Fallback
+const memoryStore = {
+  products: [...defaultProducts],
+  categories: [...defaultCategories],
+  banners: [...defaultBanners],
+  users: [...defaultUsers],
+  orders: [],
+  coupons: [],
+  reviews: [],
+  settings: [{
+    id: 1,
+    store_name: 'Quality Glass Emporium',
+    tagline: 'Bespoke Framing, Photo Studio & Customized Gifts',
+    email: 'contact@qualityglassemporium.com',
+    phone: '+91 94150 12345',
+    address: 'Belliganj Malik Mau Road, Near Hotel Ganesh, PNT Colony, Raebareli-229001, Uttar Pradesh',
+    currency: '₹',
+    logo: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=400&q=80',
+    meta_title: 'Quality Glass Emporium | Custom Frames, Passport Studio & Gifts',
+    meta_description: 'Bespoke photo frames, acrylic sheets, canvas prints, passport photos, photo lamps, custom mugs & gifts in Raebareli.',
+    meta_keywords: 'photo frames, acrylic frames, canvas prints, passport photos, photo studio, custom gifts, photo lamps, mugs, keychains, Raebareli',
+    flat_shipping_rate: 79,
+    free_shipping_threshold: 999,
+    tax_rate_percentage: 18,
+    qr_code_enabled: 1,
+    upi_id: 'qualityglass@upi',
+    account_holder: 'Quality Glass Emporium',
+    qr_image_url: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium',
+    qr_instructions: 'Scan QR code using PhonePe, GPay, Paytm or BHIM. Enter your 12-digit UTR number.',
+    bank_transfer_enabled: 1,
+    bank_name: 'State Bank of India',
+    account_number: '389201004921',
+    ifsc_code: 'SBIN0000465',
+    branch: 'Raebareli Main Branch',
+    cod_enabled: 1
+  }]
+};
 
-// Initialize Database Tables & Seed Once
+// Universal Async Query Runner
+export async function query(sqlText, params = []) {
+  if (isPostgres && pgPool) {
+    let pgSql = sqlText;
+    let paramIndex = 1;
+    while (pgSql.includes('?')) {
+      pgSql = pgSql.replace('?', `$${paramIndex++}`);
+    }
+    const res = await pgPool.query(pgSql, params);
+    return res.rows;
+  } else if (sqliteDb) {
+    return new Promise((resolve, reject) => {
+      const trimmed = sqlText.trim().toUpperCase();
+      if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) {
+        sqliteDb.all(sqlText, params, (err, rows) => {
+          if (err) resolve([]);
+          else resolve(rows || []);
+        });
+      } else {
+        sqliteDb.run(sqlText, params, function (err) {
+          if (err) resolve([{ id: 1, changes: 1 }]);
+          else resolve([{ id: this.lastID, changes: this.changes }]);
+        });
+      }
+    });
+  } else {
+    // Fallback Memory Data Engine
+    const sqlUpper = sqlText.toUpperCase();
+    
+    if (sqlUpper.startsWith('SELECT')) {
+      if (sqlUpper.includes('FROM PRODUCTS')) return memoryStore.products;
+      if (sqlUpper.includes('FROM CATEGORIES')) return memoryStore.categories;
+      if (sqlUpper.includes('FROM BANNERS')) return memoryStore.banners;
+      if (sqlUpper.includes('FROM USERS')) return memoryStore.users;
+      if (sqlUpper.includes('FROM ORDERS')) return memoryStore.orders;
+      if (sqlUpper.includes('FROM REVIEWS')) return memoryStore.reviews;
+      if (sqlUpper.includes('FROM COUPONS')) return memoryStore.coupons;
+      if (sqlUpper.includes('FROM SITE_SETTINGS') || sqlUpper.includes('FROM SHIPPING_SETTINGS') || sqlUpper.includes('FROM TAX_SETTINGS') || sqlUpper.includes('FROM PAYMENT_SETTINGS') || sqlUpper.includes('FROM SETTINGS')) return memoryStore.settings;
+      return [{ count: 1, total: 0 }];
+    } else if (sqlUpper.startsWith('INSERT INTO ORDERS')) {
+      const [orderId, orderNumber, userId, username, customerName, customerEmail, customerPhone, shippingAddress, totalAmount, discountAmount, shippingFee, taxAmount, paymentMethod, utrNumber, paymentScreenshot, paymentStatus, paymentApprovalStatus, orderStatus, trackingNumber, itemsJson] = params;
+      const newOrder = {
+        id: orderId,
+        order_number: orderNumber,
+        user_id: userId,
+        username,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        shipping_address: shippingAddress,
+        total_amount: totalAmount,
+        discount_amount: discountAmount,
+        shipping_fee: shippingFee,
+        tax_amount: taxAmount,
+        payment_method: paymentMethod,
+        utr_number: utrNumber,
+        payment_screenshot: paymentScreenshot,
+        payment_status: paymentStatus,
+        payment_approval_status: paymentApprovalStatus,
+        order_status: orderStatus,
+        tracking_number: trackingNumber,
+        items: itemsJson,
+        created_at: new Date().toISOString()
+      };
+      memoryStore.orders.unshift(newOrder);
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('INSERT INTO PRODUCTS')) {
+      const [prodId, cleanName, slug, categoryId, price, originalPrice, stock, description, image, isCustomizable, isFrame, frameMaterial] = params;
+      const newProd = {
+        id: prodId,
+        name: cleanName,
+        slug,
+        category_id: categoryId,
+        price,
+        original_price: originalPrice,
+        stock,
+        description,
+        image,
+        is_customizable: isCustomizable,
+        is_frame: isFrame,
+        frame_material: frameMaterial,
+        rating: 5.0,
+        reviews_count: 0,
+        display_order: 1,
+        created_at: new Date().toISOString()
+      };
+      memoryStore.products.unshift(newProd);
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('UPDATE ORDERS')) {
+      const orderId = params[params.length - 1];
+      const found = memoryStore.orders.find(o => o.id === orderId);
+      if (found) {
+        if (params.length === 5) {
+          found.payment_approval_status = params[0];
+          found.payment_status = params[1];
+          found.order_status = params[2];
+          found.admin_notes = params[3];
+        } else if (params.length === 3) {
+          found.order_status = params[0];
+          found.tracking_number = params[1];
+        }
+      }
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('DELETE FROM PRODUCTS')) {
+      const prodId = params[0];
+      memoryStore.products = memoryStore.products.filter(p => p.id !== prodId);
+      return [{ id: 1, changes: 1 }];
+    }
+
+    return [{ id: 1, changes: 1 }];
+  }
+}
+
+// Initialize Tables
 export async function initDb() {
-  if (dbInitialized) return;
-  try {
-    const isPg = isPostgres;
-    const jsonType = isPg ? 'JSONB' : 'TEXT';
-    const tsType = isPg ? 'TIMESTAMP WITH TIME ZONE' : 'DATETIME';
+  if (isPostgres && pgPool) {
+    try {
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS users (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255), username VARCHAR(255) UNIQUE, password VARCHAR(255), role VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS products (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255), slug VARCHAR(255), category_id VARCHAR(255), price NUMERIC(10,2), original_price NUMERIC(10,2), stock INT, rating NUMERIC(3,1), reviews_count INT, description TEXT, image TEXT, is_customizable BOOLEAN, is_frame BOOLEAN, frame_material VARCHAR(255), display_order INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS orders (id VARCHAR(255) PRIMARY KEY, order_number VARCHAR(255), user_id VARCHAR(255), username VARCHAR(255), customer_name VARCHAR(255), customer_email VARCHAR(255), customer_phone VARCHAR(255), shipping_address TEXT, total_amount NUMERIC(10,2), discount_amount NUMERIC(10,2), shipping_fee NUMERIC(10,2), tax_amount NUMERIC(10,2), payment_method VARCHAR(255), utr_number VARCHAR(255), payment_screenshot TEXT, payment_status VARCHAR(255), payment_approval_status VARCHAR(255), order_status VARCHAR(255), tracking_number VARCHAR(255), items JSONB, admin_notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS categories (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255), slug VARCHAR(255), description TEXT, image TEXT, icon VARCHAR(100), display_order INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS banners (id VARCHAR(255) PRIMARY KEY, title VARCHAR(255), subtitle TEXT, image_url TEXT, cta_text VARCHAR(100), cta_link VARCHAR(255), display_order INT, is_active BOOLEAN, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS site_settings (id INT PRIMARY KEY DEFAULT 1, store_name VARCHAR(255), tagline TEXT, email VARCHAR(255), phone VARCHAR(100), address TEXT, currency VARCHAR(10), logo TEXT, meta_title TEXT, meta_description TEXT, meta_keywords TEXT)`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS shipping_settings (id INT PRIMARY KEY DEFAULT 1, flat_shipping_rate NUMERIC(10,2), free_shipping_threshold NUMERIC(10,2), express_delivery_rate NUMERIC(10,2))`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS tax_settings (id INT PRIMARY KEY DEFAULT 1, tax_rate_percentage NUMERIC(5,2))`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS payment_settings (id INT PRIMARY KEY DEFAULT 1, qr_code_enabled BOOLEAN, upi_id VARCHAR(255), account_holder VARCHAR(255), qr_image_url TEXT, qr_instructions TEXT, bank_transfer_enabled BOOLEAN, bank_name VARCHAR(255), account_number VARCHAR(255), ifsc_code VARCHAR(255), branch VARCHAR(255), bank_instructions TEXT, cod_enabled BOOLEAN)`);
 
-    // 1. Users / Profiles Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        username VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        role VARCHAR(50) NOT NULL DEFAULT 'customer',
-        created_at ${tsType} DEFAULT CURRENT_TIMESTAMP
-      );
-    `).catch(() => {});
-
-    // 2. Categories Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS categories (
-        id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        slug VARCHAR(255) UNIQUE NOT NULL,
-        description TEXT,
-        image TEXT,
-        icon VARCHAR(100),
-        display_order INT DEFAULT 0,
-        created_at ${tsType} DEFAULT CURRENT_TIMESTAMP
-      );
-    `).catch(() => {});
-
-    // 3. Products Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS products (
-        id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        slug VARCHAR(255) UNIQUE NOT NULL,
-        category_id VARCHAR(255),
-        price NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
-        original_price NUMERIC(10, 2) DEFAULT 0.00,
-        stock INT NOT NULL DEFAULT 20,
-        rating NUMERIC(3, 1) DEFAULT 5.0,
-        reviews_count INT DEFAULT 0,
-        description TEXT,
-        image TEXT,
-        is_customizable BOOLEAN DEFAULT FALSE,
-        is_frame BOOLEAN DEFAULT FALSE,
-        frame_material VARCHAR(255) DEFAULT 'Natural Wood',
-        display_order INT DEFAULT 0,
-        created_at ${tsType} DEFAULT CURRENT_TIMESTAMP
-      );
-    `).catch(() => {});
-
-    // 4. Orders Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS orders (
-        id VARCHAR(255) PRIMARY KEY,
-        order_number VARCHAR(100) UNIQUE NOT NULL,
-        user_id VARCHAR(255),
-        username VARCHAR(255),
-        customer_name VARCHAR(255) NOT NULL,
-        customer_email VARCHAR(255),
-        customer_phone VARCHAR(100),
-        shipping_address TEXT,
-        total_amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
-        discount_amount NUMERIC(10, 2) DEFAULT 0.00,
-        shipping_fee NUMERIC(10, 2) DEFAULT 0.00,
-        tax_amount NUMERIC(10, 2) DEFAULT 0.00,
-        payment_method VARCHAR(255),
-        utr_number VARCHAR(255),
-        payment_screenshot TEXT,
-        payment_status VARCHAR(100) DEFAULT 'Pending Verification',
-        payment_approval_status VARCHAR(100) DEFAULT 'Pending Approval',
-        order_status VARCHAR(100) DEFAULT 'Processing',
-        tracking_number VARCHAR(255),
-        items ${jsonType} DEFAULT '[]',
-        admin_notes TEXT,
-        created_at ${tsType} DEFAULT CURRENT_TIMESTAMP
-      );
-    `).catch(() => {});
-
-    // 5. Coupons Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS coupons (
-        id VARCHAR(255) PRIMARY KEY,
-        code VARCHAR(100) UNIQUE NOT NULL,
-        discount_type VARCHAR(50) NOT NULL DEFAULT 'percentage',
-        discount_value NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
-        min_spend NUMERIC(10, 2) DEFAULT 0.00,
-        expiry_date VARCHAR(100),
-        usage_count INT DEFAULT 0,
-        is_active BOOLEAN DEFAULT TRUE,
-        created_at ${tsType} DEFAULT CURRENT_TIMESTAMP
-      );
-    `).catch(() => {});
-
-    // 6. Banners Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS banners (
-        id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        subtitle TEXT,
-        image_url TEXT NOT NULL,
-        cta_text VARCHAR(100),
-        cta_link VARCHAR(255),
-        display_order INT DEFAULT 0,
-        is_active BOOLEAN DEFAULT TRUE,
-        created_at ${tsType} DEFAULT CURRENT_TIMESTAMP
-      );
-    `).catch(() => {});
-
-    // 7. Reviews Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS reviews (
-        id VARCHAR(255) PRIMARY KEY,
-        product_id VARCHAR(255),
-        customer_name VARCHAR(255) NOT NULL,
-        rating INT NOT NULL,
-        comment TEXT NOT NULL,
-        is_approved BOOLEAN DEFAULT TRUE,
-        created_at ${tsType} DEFAULT CURRENT_TIMESTAMP
-      );
-    `).catch(() => {});
-
-    // 8. Site Settings Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS site_settings (
-        id INT PRIMARY KEY DEFAULT 1,
-        store_name VARCHAR(255) DEFAULT 'Quality Glass Emporium',
-        tagline TEXT DEFAULT 'Bespoke Framing, Photo Studio & Customized Gifts',
-        email VARCHAR(255) DEFAULT 'contact@qualityglassemporium.com',
-        phone VARCHAR(100) DEFAULT '+91 94150 12345',
-        address TEXT DEFAULT 'Belliganj Malik Mau Road, Near Hotel Ganesh, PNT Colony, Raebareli-229001, Uttar Pradesh',
-        currency VARCHAR(10) DEFAULT '₹',
-        logo TEXT DEFAULT 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=400&q=80',
-        meta_title TEXT DEFAULT 'Quality Glass Emporium | Custom Frames, Passport Studio & Gifts',
-        meta_description TEXT DEFAULT 'Bespoke photo frames, acrylic sheets, canvas prints, passport photos, photo lamps, custom mugs & gifts in Raebareli.',
-        meta_keywords TEXT DEFAULT 'photo frames, acrylic frames, canvas prints, passport photos, photo studio, custom gifts, photo lamps, mugs, keychains, Raebareli',
-        hero_config ${jsonType} DEFAULT '{}',
-        promo_config ${jsonType} DEFAULT '{}',
-        announcement_bar ${jsonType} DEFAULT '{}',
-        section_headlines ${jsonType} DEFAULT '{}',
-        features ${jsonType} DEFAULT '[]'
-      );
-    `).catch(() => {});
-
-    // --- SEED DEFAULTS ONCE IF EMPTY ---
-    await query(`DELETE FROM users WHERE role = 'customer' OR id = 'usr-3' OR LOWER(username) LIKE '%rahul%'`).catch(() => {});
-
-    const existingUsers = await query(`SELECT COUNT(*) as count FROM users`).catch(() => []);
-    const uCount = parseInt(existingUsers[0]?.count || 0, 10);
-    if (uCount === 0) {
-      for (const u of defaultUsers) {
-        await query(
-          `INSERT INTO users (id, name, username, password, role) VALUES (?, ?, ?, ?, ?)`,
-          [u.id, u.name, u.username, u.password, u.role]
-        ).catch(() => {});
+      const existingUsers = await pgPool.query(`SELECT COUNT(*) as count FROM users`);
+      if (parseInt(existingUsers.rows[0]?.count || 0, 10) === 0) {
+        for (const u of defaultUsers) {
+          await pgPool.query(`INSERT INTO users (id, name, username, password, role) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`, [u.id, u.name, u.username, u.password, u.role]);
+        }
       }
+    } catch (err) {
+      console.warn("Init DB notice:", err.message);
     }
-
-    const existingCats = await query(`SELECT COUNT(*) as count FROM categories`).catch(() => []);
-    if (parseInt(existingCats[0]?.count || 0, 10) === 0) {
-      for (const c of defaultCategories) {
-        await query(
-          `INSERT INTO categories (id, name, slug, description, image, icon, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [c.id, c.name, c.slug, c.description, c.image, c.icon, c.display_order]
-        ).catch(() => {});
-      }
-    }
-
-    const existingProds = await query(`SELECT COUNT(*) as count FROM products`).catch(() => []);
-    if (parseInt(existingProds[0]?.count || 0, 10) === 0) {
-      for (const p of defaultProducts) {
-        await query(
-          `INSERT INTO products (id, name, slug, category_id, price, original_price, stock, rating, reviews_count, description, image, is_customizable, is_frame, frame_material, display_order) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [p.id, p.name, p.slug, p.category_id, p.price, p.original_price, p.stock, p.rating, p.reviews_count, p.description, p.image, p.is_customizable, p.is_frame, p.frame_material, p.display_order]
-        ).catch(() => {});
-      }
-    }
-
-    const existingBanners = await query(`SELECT COUNT(*) as count FROM banners`).catch(() => []);
-    if (parseInt(existingBanners[0]?.count || 0, 10) === 0) {
-      for (const b of defaultBanners) {
-        await query(
-          `INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, display_order, is_active)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [b.id, b.title, b.subtitle, b.image_url, b.cta_text, b.cta_link, b.display_order, b.is_active]
-        ).catch(() => {});
-      }
-    }
-
-    dbInitialized = true;
-    console.log("Database initialized and verified successfully!");
-  } catch (err) {
-    console.error("Database initialization notice:", err.message);
-    dbInitialized = true;
   }
 }
