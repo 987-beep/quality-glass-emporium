@@ -94,13 +94,35 @@ export default function App() {
 
   const handleAddToCart = (item) => {
     setCartItems(prev => {
-      const existingIndex = prev.findIndex(i => i.id === item.id || (i.productId === item.productId && !i.customConfig));
+      const getItemId = (x) => (x.productId !== undefined && x.productId !== null) ? x.productId : x.id;
+      const targetId = getItemId(item);
+
+      const existingIndex = prev.findIndex(i => {
+        // Custom frames or passport studio items have unique customConfig, so do not merge
+        if (i.customConfig || item.customConfig) return false;
+
+        const iId = getItemId(i);
+        // Only compare if both items have a valid, non-null ID
+        if (iId === undefined || iId === null || targetId === undefined || targetId === null) return false;
+
+        const sameProduct = String(iId) === String(targetId);
+        const sameSize = (i.selectedSize || i.size || '') === (item.selectedSize || item.size || '');
+
+        return sameProduct && sameSize;
+      });
+
       if (existingIndex > -1) {
         const copy = [...prev];
-        copy[existingIndex].quantity += (item.quantity || 1);
+        copy[existingIndex] = {
+          ...copy[existingIndex],
+          quantity: copy[existingIndex].quantity + (item.quantity || 1)
+        };
         return copy;
       }
-      return [...prev, { ...item, quantity: item.quantity || 1 }];
+
+      // Generate a unique ID for the cart item entry if not uniquely set
+      const cartItemId = item.id || `cart-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+      return [...prev, { ...item, id: cartItemId, quantity: item.quantity || 1 }];
     });
     setToast({ message: `'${item.name}' added to cart!`, type: 'success' });
   };
