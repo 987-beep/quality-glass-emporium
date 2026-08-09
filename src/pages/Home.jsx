@@ -120,18 +120,29 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
         </div>
       )}
 
-      {/* 1. Dynamic Hero Banner Section */}
+      {/* 1. Dynamic Hero Banner Section (Image or Video Ad) */}
       <section className="relative w-full h-[640px] md:h-[720px] flex items-center justify-center overflow-hidden border-b border-outline-variant">
         <div className="absolute inset-0 z-0">
-          <img
-            src={getAssetUrl(hero.bgImage || hero.image || banners[0]?.imageUrl)}
-            alt="Luxury Storefront Hero"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = DEFAULT_HERO_BG;
-            }}
-          />
+          {(hero.mediaType === 'video' || (hero.videoUrl && hero.mediaType !== 'image')) ? (
+            <video
+              src={getAssetUrl(hero.videoUrl)}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              src={getAssetUrl(hero.bgImage || hero.image || banners[0]?.imageUrl)}
+              alt="Luxury Storefront Hero"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = DEFAULT_HERO_BG;
+              }}
+            />
+          )}
           <div className="absolute inset-0 bg-background/70 backdrop-blur-[2px]" />
         </div>
 

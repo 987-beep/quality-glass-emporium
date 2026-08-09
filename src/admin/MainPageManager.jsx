@@ -235,14 +235,51 @@ export function MainPageManager({ token }) {
         {/* TAB 1: HERO HEADER */}
         {activeTab === 'hero' && (
           <div className="bg-surface-container-low border border-outline-variant p-6 rounded space-y-6">
-            <div className="border-b border-outline-variant/60 pb-3">
-              <h2 className="font-headline font-bold text-lg text-on-surface flex items-center space-x-2">
-                <span className="material-symbols-outlined text-primary">view_carousel</span>
-                <span>Main Page Hero Header & Background Image File</span>
-              </h2>
-              <p className="text-xs text-on-surface-variant mt-1">
-                Customize the main banner presented at the top of the homepage when visitors open your website.
-              </p>
+            <div className="border-b border-outline-variant/60 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="font-headline font-bold text-lg text-on-surface flex items-center space-x-2">
+                  <span className="material-symbols-outlined text-primary">view_carousel</span>
+                  <span>Main Hero Banner (Image or Video Ad)</span>
+                </h2>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  Customize the main banner presented right under the top navigation bar when visitors open your website.
+                </p>
+              </div>
+
+              {/* Media Type Selector Toggle */}
+              <div className="bg-surface-container-high border border-outline-variant rounded p-1 flex items-center space-x-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setMainPageData({
+                    ...mainPageData,
+                    hero: { ...mainPageData.hero, mediaType: 'image' }
+                  })}
+                  className={`px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center space-x-1 ${
+                    (mainPageData.hero.mediaType || 'image') === 'image'
+                      ? 'bg-primary text-on-primary shadow-sm'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">image</span>
+                  <span>Static Image</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMainPageData({
+                    ...mainPageData,
+                    hero: { ...mainPageData.hero, mediaType: 'video' }
+                  })}
+                  className={`px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center space-x-1 ${
+                    mainPageData.hero.mediaType === 'video'
+                      ? 'bg-primary text-on-primary shadow-sm'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">movie</span>
+                  <span>🎬 Video Ad</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
@@ -294,17 +331,57 @@ export function MainPageManager({ token }) {
               </div>
 
               <div className="space-y-4">
-                {/* Hero Background File Upload */}
-                <FileUploadInput
-                  label="Upload Hero Background Image File *"
-                  value={mainPageData.hero.bgImage}
-                  token={token}
-                  onChange={(url) => setMainPageData({
-                    ...mainPageData,
-                    hero: { ...mainPageData.hero, bgImage: url }
-                  })}
-                  aspectHint="Recommended high resolution 1920x1080 horizontal image file"
-                />
+                {mainPageData.hero.mediaType === 'video' ? (
+                  <div className="space-y-3 bg-surface-container-high/50 p-3.5 rounded border border-outline-variant/60">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-primary text-xs flex items-center space-x-1">
+                        <span className="material-symbols-outlined text-base">movie</span>
+                        <span>Hero Video Ad Configurator</span>
+                      </span>
+                      <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold uppercase">
+                        Autoplay & Loop Enabled
+                      </span>
+                    </div>
+
+                    <FileUploadInput
+                      label="Upload Video Ad File (.mp4, .webm, .mov) *"
+                      value={mainPageData.hero.videoUrl || ''}
+                      token={token}
+                      fileType="video"
+                      onChange={(url) => setMainPageData({
+                        ...mainPageData,
+                        hero: { ...mainPageData.hero, videoUrl: url, mediaType: 'video' }
+                      })}
+                      aspectHint="Upload MP4 or WebM video file (Recommended length: 5-30s)"
+                    />
+
+                    <div>
+                      <label className="block text-on-surface font-semibold mb-1">Or Direct Video Ad URL</label>
+                      <input
+                        type="text"
+                        value={mainPageData.hero.videoUrl || ''}
+                        onChange={(e) => setMainPageData({
+                          ...mainPageData,
+                          hero: { ...mainPageData.hero, videoUrl: e.target.value, mediaType: 'video' }
+                        })}
+                        placeholder="https://example.com/promo-video-ad.mp4"
+                        className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded text-xs focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <FileUploadInput
+                    label="Upload Hero Background Image File *"
+                    value={mainPageData.hero.bgImage}
+                    token={token}
+                    fileType="image"
+                    onChange={(url) => setMainPageData({
+                      ...mainPageData,
+                      hero: { ...mainPageData.hero, bgImage: url, mediaType: 'image' }
+                    })}
+                    aspectHint="Recommended high resolution 1920x1080 horizontal image file"
+                  />
+                )}
 
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   <div>
