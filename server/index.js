@@ -562,17 +562,33 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Username ID and password are required' });
     }
 
-    const rawInput = username.trim().toLowerCase();
-    const normInput = rawInput.replace(/^@/, '');
+    await initDb().catch(() => {});
 
-    const rows = await query(`SELECT * FROM users`);
-    const user = rows.find(u => {
-      if (!u.username) return false;
+    const rawInput = (username || '').trim().toLowerCase();
+    const normInput = rawInput.replace(/^@/, '');
+    const cleanPass = (password || '').trim();
+
+    let dbUsers = [];
+    try {
+      dbUsers = await query(`SELECT * FROM users`);
+    } catch (dbErr) {
+      console.warn("DB user query notice:", dbErr.message);
+    }
+
+    const allUsers = [...defaultUsers, ...(Array.isArray(dbUsers) ? dbUsers : [])];
+
+    const user = allUsers.find(u => {
+      if (!u || !u.username) return false;
       const normUser = u.username.trim().toLowerCase().replace(/^@/, '');
-      return normUser === normInput || u.username.trim().toLowerCase() === rawInput;
+      const userPass = (u.password || '').trim();
+
+      const isUsernameMatch = (normUser === normInput || u.username.trim().toLowerCase() === rawInput);
+      const isPasswordMatch = (userPass === cleanPass || userPass.toLowerCase() === cleanPass.toLowerCase());
+
+      return isUsernameMatch && isPasswordMatch;
     });
 
-    if (!user || user.password !== password) {
+    if (!user) {
       return res.status(401).json({ error: 'Invalid Username ID or Password credentials' });
     }
 

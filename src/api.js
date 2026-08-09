@@ -2,6 +2,8 @@
 const RAW_API_BASE = import.meta.env.VITE_API_URL || '';
 export const API_BASE = RAW_API_BASE.replace(/\/$/, '');
 
+const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80';
+
 /**
  * Universal wrapper around fetch for all backend API calls.
  * Prepends VITE_API_URL if configured, otherwise uses relative paths.
@@ -19,13 +21,15 @@ export function apiFetch(endpoint, options = {}) {
 }
 
 /**
- * Helper to construct full URL for static assets like uploads.
+ * Helper to construct full URL for static assets like uploads & Cloudinary images.
  * 
- * @param {string} relativePath - e.g. '/uploads/image.jpg'
+ * @param {string} relativePath - e.g. '/uploads/image.jpg' or Cloudinary URL
  * @returns {string}
  */
 export function getAssetUrl(relativePath) {
-  if (!relativePath) return '';
+  if (!relativePath || relativePath.trim() === '') {
+    return DEFAULT_FALLBACK_IMAGE;
+  }
   if (relativePath.startsWith('http') || relativePath.startsWith('data:')) {
     return relativePath;
   }
