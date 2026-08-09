@@ -437,6 +437,42 @@ function saveDynamicSettings(settingsObj) {
   } catch {}
 }
 
+// Orders JSON persistence helper
+const ordersJsonPath = path.join(__dirname, 'orders_store.json');
+function loadDynamicOrders() {
+  try {
+    if (fs.existsSync(ordersJsonPath)) {
+      const raw = fs.readFileSync(ordersJsonPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+function saveDynamicOrders(orders) {
+  try {
+    fs.writeFileSync(ordersJsonPath, JSON.stringify(orders, null, 2), 'utf8');
+  } catch {}
+}
+
+// Reviews JSON persistence helper
+const reviewsJsonPath = path.join(__dirname, 'reviews_store.json');
+function loadDynamicReviews() {
+  try {
+    if (fs.existsSync(reviewsJsonPath)) {
+      const raw = fs.readFileSync(reviewsJsonPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+function saveDynamicReviews(revs) {
+  try {
+    fs.writeFileSync(reviewsJsonPath, JSON.stringify(revs, null, 2), 'utf8');
+  } catch {}
+}
+
 const loadedSettings = loadDynamicSettings();
 
 // Memory Data Store for High-Performance Fallback
@@ -445,9 +481,9 @@ const memoryStore = {
   categories: loadDynamicCategories(),
   banners: loadDynamicBanners(),
   users: [...defaultUsers, ...dynamicRegisteredUsers],
-  orders: [],
+  orders: loadDynamicOrders(),
   coupons: loadDynamicCoupons(),
-  reviews: [],
+  reviews: loadDynamicReviews(),
   siteSettings: loadedSettings?.siteSettings || {
     id: 1,
     store_name: 'Quality Glass Emporium',
@@ -497,6 +533,68 @@ const memoryStore = {
   }
 };
 
+const dataMasterJsonPath = path.join(__dirname, 'data.json');
+
+export function saveMasterDataJson() {
+  try {
+    const fullData = {
+      users: memoryStore.users,
+      paymentConfig: {
+        qrCode: {
+          enabled: Boolean(memoryStore.paymentSettings.qr_code_enabled),
+          upiId: memoryStore.paymentSettings.upi_id || 'qualityglass@upi',
+          accountHolder: memoryStore.paymentSettings.account_holder || 'Quality Glass Emporium',
+          qrImageUrl: memoryStore.paymentSettings.qr_image_url || 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium',
+          instructions: memoryStore.paymentSettings.qr_instructions || ''
+        },
+        bankTransfer: {
+          enabled: Boolean(memoryStore.paymentSettings.bank_transfer_enabled),
+          accountHolder: memoryStore.paymentSettings.account_holder || 'Quality Glass Emporium',
+          bankName: memoryStore.paymentSettings.bank_name || 'State Bank of India',
+          accountNumber: memoryStore.paymentSettings.account_number || '389201004921',
+          ifscCode: memoryStore.paymentSettings.ifsc_code || 'SBIN0000465',
+          branch: memoryStore.paymentSettings.branch || 'Raebareli Main Branch',
+          instructions: memoryStore.paymentSettings.bank_instructions || ''
+        },
+        cod: {
+          enabled: Boolean(memoryStore.paymentSettings.cod_enabled)
+        }
+      },
+      settings: {
+        storeName: memoryStore.siteSettings.store_name,
+        tagline: memoryStore.siteSettings.tagline,
+        email: memoryStore.siteSettings.email,
+        phone: memoryStore.siteSettings.phone,
+        address: memoryStore.siteSettings.address,
+        currency: memoryStore.siteSettings.currency,
+        logo: memoryStore.siteSettings.logo,
+        metaTitle: memoryStore.siteSettings.meta_title,
+        metaDescription: memoryStore.siteSettings.meta_description,
+        metaKeywords: memoryStore.siteSettings.meta_keywords,
+        freeShippingThreshold: parseFloat(memoryStore.shippingSettings.free_shipping_threshold || 999),
+        flatShippingRate: parseFloat(memoryStore.shippingSettings.flat_shipping_rate || 79),
+        expressDeliveryRate: parseFloat(memoryStore.shippingSettings.express_delivery_rate || 149),
+        taxRatePercentage: parseFloat(memoryStore.taxSettings.tax_rate_percentage || 18)
+      },
+      categories: memoryStore.categories,
+      products: memoryStore.products,
+      mainPage: {
+        hero: parseJsonField(memoryStore.siteSettings.hero_config),
+        promo: parseJsonField(memoryStore.siteSettings.promo_config),
+        announcementBar: parseJsonField(memoryStore.siteSettings.announcement_bar),
+        sectionHeadlines: parseJsonField(memoryStore.siteSettings.section_headlines),
+        features: parseJsonField(memoryStore.siteSettings.features, [])
+      },
+      banners: memoryStore.banners,
+      coupons: memoryStore.coupons,
+      orders: memoryStore.orders,
+      reviews: memoryStore.reviews
+    };
+
+    fs.writeFileSync(dataMasterJsonPath, JSON.stringify(fullData, null, 2), 'utf8');
+  } catch {}
+}
+
 function persistAllSettings() {
   saveDynamicSettings({
     siteSettings: memoryStore.siteSettings,
@@ -504,10 +602,14 @@ function persistAllSettings() {
     shippingSettings: memoryStore.shippingSettings,
     taxSettings: memoryStore.taxSettings
   });
+  saveMasterDataJson();
 }
 
 // Universal Async Query Runner
 export async function query(sqlText, params = []) {
+  const isWrite = /^(INSERT|UPDATE|DELETE|REPLACE|ALTER|CREATE|DROP)/i.test(sqlText.trim());
+
+  let resultRows = [];
   if (isPostgres && pgPool) {
     let pgSql = sqlText;
     let paramIndex = 1;
@@ -515,9 +617,9 @@ export async function query(sqlText, params = []) {
       pgSql = pgSql.replace('?', `$${paramIndex++}`);
     }
     const res = await pgPool.query(pgSql, params);
-    return res.rows;
+    resultRows = res.rows;
   } else if (sqliteDb) {
-    return new Promise((resolve) => {
+    resultRows = await new Promise((resolve) => {
       const trimmed = sqlText.trim().toUpperCase();
       if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) {
         sqliteDb.all(sqlText, params, (err, rows) => {
@@ -540,282 +642,250 @@ export async function query(sqlText, params = []) {
       }
     });
   } else {
-    // Fallback Memory Data Engine with JSON persistence
-    const sqlUpper = sqlText.toUpperCase();
-    
-    if (sqlUpper.startsWith('SELECT')) {
-      if (sqlUpper.includes('FROM PRODUCTS')) {
-        let list = [...memoryStore.products];
-        if (params.length > 0 && typeof params[0] === 'string' && params[0] !== 'all') {
-          const cat = params[0].toLowerCase();
-          list = list.filter(p => (p.category_id && p.category_id.toLowerCase() === cat) || (p.slug && p.slug.toLowerCase() === cat));
-        }
-        return list;
-      }
-      if (sqlUpper.includes('FROM CATEGORIES')) return memoryStore.categories;
-      if (sqlUpper.includes('FROM BANNERS')) {
-        return memoryStore.banners.map(b => ({
-          id: b.id,
-          title: b.title,
-          subtitle: b.subtitle,
-          imageUrl: b.image_url || b.imageUrl,
-          ctaText: b.cta_text || b.ctaText,
-          ctaLink: b.cta_link || b.ctaLink,
-          displayOrder: b.display_order || b.displayOrder || 1,
-          isActive: b.is_active !== undefined ? Boolean(b.is_active) : true
-        }));
-      }
-      if (sqlUpper.includes('FROM USERS')) {
-        if (params.length > 0 && typeof params[0] === 'string') {
-          const target = params[0].trim().toLowerCase().replace(/^@/, '');
-          return memoryStore.users.filter(u => u.username && u.username.trim().toLowerCase().replace(/^@/, '') === target);
-        }
-        return memoryStore.users;
-      }
-      if (sqlUpper.includes('FROM ORDERS')) return memoryStore.orders;
-      if (sqlUpper.includes('FROM REVIEWS')) return memoryStore.reviews;
-      if (sqlUpper.includes('FROM COUPONS')) {
-        if (params.length > 0 && typeof params[0] === 'string') {
-          const targetCode = params[0].trim().toUpperCase();
-          return memoryStore.coupons.filter(c => c.code && c.code.trim().toUpperCase() === targetCode);
-        }
-        return memoryStore.coupons.map(c => ({
-          id: c.id,
-          code: c.code,
-          discountType: c.discount_type || c.discountType || 'percentage',
-          discountValue: parseFloat(c.discount_value || c.discountValue || 0),
-          minSpend: parseFloat(c.min_spend || c.minSpend || 0),
-          expiryDate: c.expiry_date || c.expiryDate || '2027-12-31',
-          usageCount: parseInt(c.usage_count || c.usageCount || 0, 10),
-          isActive: c.is_active !== undefined ? Boolean(c.is_active) : true,
-          discount_type: c.discount_type || c.discountType || 'percentage',
-          discount_value: c.discount_value || c.discountValue || 0,
-          min_spend: c.min_spend || c.minSpend || 0,
-          expiry_date: c.expiry_date || c.expiryDate || '2027-12-31'
-        }));
-      }
-      if (sqlUpper.includes('FROM PAYMENT_SETTINGS')) return [memoryStore.paymentSettings];
-      if (sqlUpper.includes('FROM SITE_SETTINGS')) return [memoryStore.siteSettings];
-      if (sqlUpper.includes('FROM SHIPPING_SETTINGS')) return [memoryStore.shippingSettings];
-      if (sqlUpper.includes('FROM TAX_SETTINGS')) return [memoryStore.taxSettings];
-      return [{ count: 1, total: 0 }];
-    } else if (sqlUpper.startsWith('INSERT INTO COUPONS')) {
-      const [cId, code, discountType, discountValue, minSpend, expiryDate] = params;
-      const newCoupon = {
-        id: cId,
-        code: code ? code.toUpperCase() : '',
-        discount_type: discountType || 'percentage',
-        discount_value: parseFloat(discountValue || 0),
-        min_spend: parseFloat(minSpend || 0),
-        expiry_date: expiryDate || '2027-12-31',
-        usage_count: 0,
-        is_active: 1
-      };
-      memoryStore.coupons.unshift(newCoupon);
-      saveDynamicCoupons(memoryStore.coupons);
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('DELETE FROM COUPONS')) {
-      const targetId = params[0];
-      memoryStore.coupons = memoryStore.coupons.filter(c => c.id !== targetId && c.code !== targetId);
-      saveDynamicCoupons(memoryStore.coupons);
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('UPDATE PAYMENT_SETTINGS')) {
-      const [qrEnabled, upiId, accountHolder, qrImageUrl, qrInstructions, bankEnabled, bankName, accountNumber, ifscCode, branch, bankInstructions, codEnabled] = params;
-      memoryStore.paymentSettings = {
-        ...memoryStore.paymentSettings,
-        qr_code_enabled: qrEnabled ? 1 : 0,
-        upi_id: upiId !== undefined ? upiId : memoryStore.paymentSettings.upi_id,
-        account_holder: accountHolder !== undefined ? accountHolder : memoryStore.paymentSettings.account_holder,
-        qr_image_url: qrImageUrl !== undefined ? qrImageUrl : memoryStore.paymentSettings.qr_image_url,
-        qr_instructions: qrInstructions !== undefined ? qrInstructions : memoryStore.paymentSettings.qr_instructions,
-        bank_transfer_enabled: bankEnabled ? 1 : 0,
-        bank_name: bankName !== undefined ? bankName : memoryStore.paymentSettings.bank_name,
-        account_number: accountNumber !== undefined ? accountNumber : memoryStore.paymentSettings.account_number,
-        ifsc_code: ifscCode !== undefined ? ifscCode : memoryStore.paymentSettings.ifsc_code,
-        branch: branch !== undefined ? branch : memoryStore.paymentSettings.branch,
-        bank_instructions: bankInstructions !== undefined ? bankInstructions : memoryStore.paymentSettings.bank_instructions,
-        cod_enabled: codEnabled ? 1 : 0
-      };
-      persistAllSettings();
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('UPDATE SITE_SETTINGS')) {
-      if (sqlUpper.includes('HERO_CONFIG')) {
-        const [hero, promo, ann, sec, feat] = params;
-        memoryStore.siteSettings = {
-          ...memoryStore.siteSettings,
-          hero_config: hero,
-          promo_config: promo,
-          announcement_bar: ann,
-          section_headlines: sec,
-          features: feat
-        };
-      } else {
-        const [sName, tag, eml, ph, addr, lg, mTitle, mDesc, mKey] = params;
-        memoryStore.siteSettings = {
-          ...memoryStore.siteSettings,
-          store_name: sName || memoryStore.siteSettings.store_name,
-          tagline: tag || memoryStore.siteSettings.tagline,
-          email: eml || memoryStore.siteSettings.email,
-          phone: ph || memoryStore.siteSettings.phone,
-          address: addr || memoryStore.siteSettings.address,
-          logo: lg || memoryStore.siteSettings.logo,
-          meta_title: mTitle || memoryStore.siteSettings.meta_title,
-          meta_description: mDesc || memoryStore.siteSettings.meta_description,
-          meta_keywords: mKey || memoryStore.siteSettings.meta_keywords
-        };
-      }
-      persistAllSettings();
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('UPDATE SHIPPING_SETTINGS')) {
-      const [rate, thresh] = params;
-      if (rate !== null && rate !== undefined) memoryStore.shippingSettings.flat_shipping_rate = rate;
-      if (thresh !== null && thresh !== undefined) memoryStore.shippingSettings.free_shipping_threshold = thresh;
-      persistAllSettings();
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('UPDATE TAX_SETTINGS')) {
-      const [rate] = params;
-      if (rate !== null && rate !== undefined) memoryStore.taxSettings.tax_rate_percentage = rate;
-      persistAllSettings();
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('INSERT INTO BANNERS')) {
-      const [bId, title, subtitle, imageUrl, ctaText, ctaLink] = params;
-      const newBanner = { id: bId, title, subtitle, image_url: imageUrl, cta_text: ctaText, cta_link: ctaLink, display_order: memoryStore.banners.length + 1, is_active: true };
-      memoryStore.banners.push(newBanner);
-      saveDynamicBanners(memoryStore.banners);
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('DELETE FROM BANNERS')) {
-      const bannerId = params[0];
-      memoryStore.banners = memoryStore.banners.filter(b => b.id !== bannerId);
-      saveDynamicBanners(memoryStore.banners);
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('INSERT INTO CATEGORIES')) {
-      const [cId, name, slug, description, image, icon] = params;
-      const newCat = { id: cId, name, slug, description, image, icon: icon || 'category', display_order: memoryStore.categories.length + 1 };
-      memoryStore.categories.push(newCat);
-      saveDynamicCategories(memoryStore.categories);
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('UPDATE CATEGORIES')) {
-      const catId = params[params.length - 1];
-      const found = memoryStore.categories.find(c => c.id === catId);
-      if (found && params.length >= 4) {
-        found.name = params[0];
-        found.description = params[1];
-        found.image = params[2];
-        found.icon = params[3];
-        saveDynamicCategories(memoryStore.categories);
-      }
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('DELETE FROM CATEGORIES')) {
-      const catId = params[0];
-      memoryStore.categories = memoryStore.categories.filter(c => c.id !== catId);
-      saveDynamicCategories(memoryStore.categories);
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('INSERT INTO ORDERS')) {
-      const [orderId, orderNumber, userId, username, customerName, customerEmail, customerPhone, shippingAddress, totalAmount, discountAmount, shippingFee, taxAmount, paymentMethod, utrNumber, paymentScreenshot, paymentStatus, paymentApprovalStatus, orderStatus, trackingNumber, itemsJson] = params;
-      const newOrder = {
-        id: orderId,
-        order_number: orderNumber,
-        user_id: userId,
-        username,
-        customer_name: customerName,
-        customer_email: customerEmail,
-        customer_phone: customerPhone,
-        shipping_address: shippingAddress,
-        total_amount: totalAmount,
-        discount_amount: discountAmount,
-        shipping_fee: shippingFee,
-        tax_amount: taxAmount,
-        payment_method: paymentMethod,
-        utr_number: utrNumber,
-        payment_screenshot: paymentScreenshot,
-        payment_status: paymentStatus,
-        payment_approval_status: paymentApprovalStatus,
-        order_status: orderStatus,
-        tracking_number: trackingNumber,
-        items: itemsJson,
-        created_at: new Date().toISOString()
-      };
-      memoryStore.orders.unshift(newOrder);
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('INSERT INTO PRODUCTS')) {
-      const [prodId, cleanName, slug, categoryId, price, originalPrice, stock, description, image, isCustomizable, isFrame, frameMaterial] = params;
-      const newProd = {
-        id: prodId,
-        name: cleanName,
-        slug,
-        category_id: categoryId,
-        price,
-        original_price: originalPrice,
-        stock,
-        description,
-        image,
-        is_customizable: isCustomizable,
-        is_frame: isFrame,
-        frame_material: frameMaterial,
-        rating: 5.0,
-        reviews_count: 0,
-        display_order: 1,
-        created_at: new Date().toISOString()
-      };
-      memoryStore.products.unshift(newProd);
-      dynamicAdminProducts.unshift(newProd);
-      saveDynamicProducts(dynamicAdminProducts);
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('UPDATE PRODUCTS')) {
-      const prodId = params[params.length - 1];
-      const found = memoryStore.products.find(p => p.id === prodId);
-      if (found && params.length >= 11) {
-        found.name = params[0];
-        found.slug = params[1];
-        found.category_id = params[2];
-        found.price = params[3];
-        found.original_price = params[4];
-        found.stock = params[5];
-        found.description = params[6];
-        found.image = params[7];
-        found.is_customizable = params[8];
-        found.is_frame = params[9];
-        found.frame_material = params[10];
+    resultRows = executeMemoryQuery(sqlText, params);
+  }
 
-        const dynFound = dynamicAdminProducts.find(p => p.id === prodId);
-        if (dynFound) {
-          Object.assign(dynFound, found);
-          saveDynamicProducts(dynamicAdminProducts);
-        }
+  if (isWrite) {
+    saveMasterDataJson();
+  }
+
+  return resultRows;
+}
+
+function executeMemoryQuery(sqlText, params = []) {
+  const sqlUpper = sqlText.toUpperCase();
+  
+  if (sqlUpper.startsWith('SELECT')) {
+    if (sqlUpper.includes('FROM PRODUCTS')) {
+      let list = [...memoryStore.products];
+      if (params.length > 0 && typeof params[0] === 'string' && params[0] !== 'all') {
+        const cat = params[0].toLowerCase();
+        list = list.filter(p => (p.category_id && p.category_id.toLowerCase() === cat) || (p.slug && p.slug.toLowerCase() === cat));
       }
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('INSERT INTO USERS')) {
-      const [newId, name, username, password, role] = params;
-      const newUser = { id: newId, name, username, password, role: role || 'customer', created_at: new Date().toISOString() };
-      memoryStore.users.push(newUser);
-      dynamicRegisteredUsers.push(newUser);
-      saveDynamicUsers(dynamicRegisteredUsers);
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('UPDATE ORDERS')) {
-      const orderId = params[params.length - 1];
-      const found = memoryStore.orders.find(o => o.id === orderId);
-      if (found) {
-        if (params.length === 5) {
-          found.payment_approval_status = params[0];
-          found.payment_status = params[1];
-          found.order_status = params[2];
-          found.admin_notes = params[3];
-        } else if (params.length === 3) {
-          found.order_status = params[0];
-          found.tracking_number = params[1];
-        }
-      }
-      return [{ id: 1, changes: 1 }];
-    } else if (sqlUpper.startsWith('DELETE FROM PRODUCTS')) {
-      const prodId = params[0];
-      memoryStore.products = memoryStore.products.filter(p => p.id !== prodId);
-      dynamicAdminProducts = dynamicAdminProducts.filter(p => p.id !== prodId);
-      saveDynamicProducts(dynamicAdminProducts);
-      return [{ id: 1, changes: 1 }];
+      return list;
+    } else if (sqlUpper.includes('FROM USERS')) {
+      return [...memoryStore.users];
+    } else if (sqlUpper.includes('FROM CATEGORIES')) {
+      return [...memoryStore.categories];
+    } else if (sqlUpper.includes('FROM BANNERS')) {
+      return [...memoryStore.banners];
+    } else if (sqlUpper.includes('FROM ORDERS')) {
+      return [...memoryStore.orders];
+    } else if (sqlUpper.includes('FROM COUPONS')) {
+      return [...memoryStore.coupons];
+    } else if (sqlUpper.includes('FROM REVIEWS')) {
+      return [...memoryStore.reviews];
+    } else if (sqlUpper.includes('FROM SITE_SETTINGS')) {
+      return [memoryStore.siteSettings];
+    } else if (sqlUpper.includes('FROM PAYMENT_SETTINGS')) {
+      return [memoryStore.paymentSettings];
+    } else if (sqlUpper.includes('FROM SHIPPING_SETTINGS')) {
+      return [memoryStore.shippingSettings];
+    } else if (sqlUpper.includes('FROM TAX_SETTINGS')) {
+      return [memoryStore.taxSettings];
     }
+    return [];
+  } else if (sqlUpper.startsWith('UPDATE SITE_SETTINGS')) {
+    if (params.length >= 5 && sqlUpper.includes('HERO_CONFIG')) {
+      memoryStore.siteSettings.hero_config = params[0];
+      memoryStore.siteSettings.promo_config = params[1];
+      memoryStore.siteSettings.announcement_bar = params[2];
+      memoryStore.siteSettings.section_headlines = params[3];
+      memoryStore.siteSettings.features = params[4];
+    } else if (params.length >= 9) {
+      if (params[0] !== null) memoryStore.siteSettings.store_name = params[0];
+      if (params[1] !== null) memoryStore.siteSettings.tagline = params[1];
+      if (params[2] !== null) memoryStore.siteSettings.email = params[2];
+      if (params[3] !== null) memoryStore.siteSettings.phone = params[3];
+      if (params[4] !== null) memoryStore.siteSettings.address = params[4];
+      if (params[5] !== null) memoryStore.siteSettings.logo = params[5];
+      if (params[6] !== null) memoryStore.siteSettings.meta_title = params[6];
+      if (params[7] !== null) memoryStore.siteSettings.meta_description = params[7];
+      if (params[8] !== null) memoryStore.siteSettings.meta_keywords = params[8];
+    }
+    persistAllSettings();
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('UPDATE PAYMENT_SETTINGS')) {
+    if (params.length >= 12) {
+      memoryStore.paymentSettings.qr_code_enabled = params[0];
+      memoryStore.paymentSettings.upi_id = params[1];
+      memoryStore.paymentSettings.account_holder = params[2];
+      memoryStore.paymentSettings.qr_image_url = params[3];
+      memoryStore.paymentSettings.qr_instructions = params[4];
+      memoryStore.paymentSettings.bank_transfer_enabled = params[5];
+      memoryStore.paymentSettings.bank_name = params[6];
+      memoryStore.paymentSettings.account_number = params[7];
+      memoryStore.paymentSettings.ifsc_code = params[8];
+      memoryStore.paymentSettings.branch = params[9];
+      memoryStore.paymentSettings.bank_instructions = params[10];
+      memoryStore.paymentSettings.cod_enabled = params[11];
+    }
+    persistAllSettings();
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('UPDATE SHIPPING_SETTINGS')) {
+    if (params.length >= 2) {
+      if (params[0] !== null) memoryStore.shippingSettings.flat_shipping_rate = params[0];
+      if (params[1] !== null) memoryStore.shippingSettings.free_shipping_threshold = params[1];
+    }
+    persistAllSettings();
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('UPDATE TAX_SETTINGS')) {
+    if (params.length >= 1 && params[0] !== null) {
+      memoryStore.taxSettings.tax_rate_percentage = params[0];
+    }
+    persistAllSettings();
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('INSERT INTO COUPONS')) {
+    const [id, code, dType, dVal, minSp, exp, count, active] = params;
+    const newCoup = { id, code, discount_type: dType, discount_value: dVal, min_spend: minSp, expiry_date: exp, usage_count: count || 0, is_active: active !== undefined ? active : 1 };
+    memoryStore.coupons.unshift(newCoup);
+    saveDynamicCoupons(memoryStore.coupons);
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('DELETE FROM COUPONS')) {
+    const coupId = params[0];
+    memoryStore.coupons = memoryStore.coupons.filter(c => c.id !== coupId);
+    saveDynamicCoupons(memoryStore.coupons);
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('INSERT INTO BANNERS')) {
+    const [bId, title, subtitle, imageUrl, ctaText, ctaLink, isActive] = params;
+    const newBanner = { id: bId, title, subtitle, image_url: imageUrl, cta_text: ctaText, cta_link: ctaLink, display_order: memoryStore.banners.length + 1, is_active: Boolean(isActive) };
+    memoryStore.banners.push(newBanner);
+    saveDynamicBanners(memoryStore.banners);
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('DELETE FROM BANNERS')) {
+    const bannerId = params[0];
+    memoryStore.banners = memoryStore.banners.filter(b => b.id !== bannerId);
+    saveDynamicBanners(memoryStore.banners);
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('INSERT INTO CATEGORIES')) {
+    const [cId, name, slug, description, image, icon] = params;
+    const newCat = { id: cId, name, slug, description, image, icon: icon || 'category', display_order: memoryStore.categories.length + 1 };
+    memoryStore.categories.push(newCat);
+    saveDynamicCategories(memoryStore.categories);
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('UPDATE CATEGORIES')) {
+    const catId = params[params.length - 1];
+    const found = memoryStore.categories.find(c => c.id === catId);
+    if (found && params.length >= 4) {
+      found.name = params[0];
+      found.description = params[1];
+      found.image = params[2];
+      found.icon = params[3];
+      saveDynamicCategories(memoryStore.categories);
+    }
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('DELETE FROM CATEGORIES')) {
+    const catId = params[0];
+    memoryStore.categories = memoryStore.categories.filter(c => c.id !== catId);
+    saveDynamicCategories(memoryStore.categories);
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('INSERT INTO ORDERS')) {
+    const [orderId, orderNumber, userId, username, customerName, customerEmail, customerPhone, shippingAddress, totalAmount, discountAmount, shippingFee, taxAmount, paymentMethod, utrNumber, paymentScreenshot, paymentStatus, paymentApprovalStatus, orderStatus, trackingNumber, itemsJson] = params;
+    const newOrder = {
+      id: orderId,
+      order_number: orderNumber,
+      user_id: userId,
+      username,
+      customer_name: customerName,
+      customer_email: customerEmail,
+      customer_phone: customerPhone,
+      shipping_address: shippingAddress,
+      total_amount: totalAmount,
+      discount_amount: discountAmount,
+      shipping_fee: shippingFee,
+      tax_amount: taxAmount,
+      payment_method: paymentMethod,
+      utr_number: utrNumber,
+      payment_screenshot: paymentScreenshot,
+      payment_status: paymentStatus,
+      payment_approval_status: paymentApprovalStatus,
+      order_status: orderStatus,
+      tracking_number: trackingNumber,
+      items: itemsJson,
+      created_at: new Date().toISOString()
+    };
+    memoryStore.orders.unshift(newOrder);
+    saveDynamicOrders(memoryStore.orders);
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('INSERT INTO PRODUCTS')) {
+    const [prodId, cleanName, slug, categoryId, price, originalPrice, stock, description, image, isCustomizable, isFrame, frameMaterial] = params;
+    const newProd = {
+      id: prodId,
+      name: cleanName,
+      slug,
+      category_id: categoryId,
+      price,
+      original_price: originalPrice,
+      stock,
+      description,
+      image,
+      is_customizable: isCustomizable,
+      is_frame: isFrame,
+      frame_material: frameMaterial,
+      rating: 5.0,
+      reviews_count: 0,
+      display_order: 1,
+      created_at: new Date().toISOString()
+    };
+    memoryStore.products.unshift(newProd);
+    dynamicAdminProducts.unshift(newProd);
+    saveDynamicProducts(dynamicAdminProducts);
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('UPDATE PRODUCTS')) {
+    const prodId = params[params.length - 1];
+    const found = memoryStore.products.find(p => p.id === prodId);
+    if (found && params.length >= 11) {
+      found.name = params[0];
+      found.slug = params[1];
+      found.category_id = params[2];
+      found.price = params[3];
+      found.original_price = params[4];
+      found.stock = params[5];
+      found.description = params[6];
+      found.image = params[7];
+      found.is_customizable = params[8];
+      found.is_frame = params[9];
+      found.frame_material = params[10];
 
+      const dynFound = dynamicAdminProducts.find(p => p.id === prodId);
+      if (dynFound) {
+        Object.assign(dynFound, found);
+        saveDynamicProducts(dynamicAdminProducts);
+      }
+    }
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('INSERT INTO USERS')) {
+    const [newId, name, username, password, role] = params;
+    const newUser = { id: newId, name, username, password, role: role || 'customer', created_at: new Date().toISOString() };
+    memoryStore.users.push(newUser);
+    dynamicRegisteredUsers.push(newUser);
+    saveDynamicUsers(dynamicRegisteredUsers);
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('UPDATE ORDERS')) {
+    const orderId = params[params.length - 1];
+    const found = memoryStore.orders.find(o => o.id === orderId);
+    if (found) {
+      if (params.length === 5) {
+        found.payment_approval_status = params[0];
+        found.payment_status = params[1];
+        found.order_status = params[2];
+        found.admin_notes = params[3];
+      } else if (params.length === 3) {
+        found.order_status = params[0];
+        found.tracking_number = params[1];
+      }
+      saveDynamicOrders(memoryStore.orders);
+    }
+    return [{ id: 1, changes: 1 }];
+  } else if (sqlUpper.startsWith('DELETE FROM PRODUCTS')) {
+    const prodId = params[0];
+    memoryStore.products = memoryStore.products.filter(p => p.id !== prodId);
+    dynamicAdminProducts = dynamicAdminProducts.filter(p => p.id !== prodId);
+    saveDynamicProducts(dynamicAdminProducts);
     return [{ id: 1, changes: 1 }];
   }
+
+  return [{ id: 1, changes: 1 }];
 }
 
 // Initialize Tables
