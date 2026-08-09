@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch, getAssetUrl, getLocalProducts, setLocalProducts, syncProductsWithLocal } from '../api';
+import { apiFetch, getAssetUrl } from '../api';
 import { FileUploadInput } from '../components/FileUploadInput';
+
+const DEFAULT_STORE_COLLECTIONS = [
+  { id: "photo-frames", name: "Photo Frames" },
+  { id: "acrylic-frames", name: "Acrylic Frames & Sheets" },
+  { id: "canvas-prints", name: "Canvas Prints" },
+  { id: "photo-studio", name: "Photo Studio & Passport" },
+  { id: "custom-gifts", name: "Customized Gifts" },
+  { id: "photo-albums", name: "Photo Albums & Memory Books" }
+];
 
 export function ProductsManager({ token }) {
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(DEFAULT_STORE_COLLECTIONS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -25,22 +34,22 @@ export function ProductsManager({ token }) {
     apiFetch('/api/products')
       .then(res => res.json())
       .then(data => {
-        const merged = syncProductsWithLocal(data);
-        setProducts(merged);
-      })
-      .catch(() => {
-        const local = getLocalProducts();
-        if (local && Array.isArray(local)) {
-          setProducts(local);
+        if (Array.isArray(data)) {
+          setProducts(data);
         }
-      });
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
     fetchProducts();
     apiFetch('/api/categories')
       .then(res => res.json())
-      .then(data => setCategories(data))
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setCategories(data);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -65,7 +74,7 @@ export function ProductsManager({ token }) {
     setEditingProduct(prod);
     setFormData({
       name: prod.name,
-      categoryId: prod.categoryId,
+      categoryId: prod.categoryId || prod.category_id || 'photo-frames',
       price: prod.price,
       originalPrice: prod.originalPrice || prod.price,
       stock: prod.stock,
@@ -88,7 +97,6 @@ export function ProductsManager({ token }) {
     updated[index - 1] = updated[index];
     updated[index] = temp;
     setProducts(updated);
-    setLocalProducts(updated);
   };
 
   const handleMoveDown = (index) => {
@@ -98,13 +106,11 @@ export function ProductsManager({ token }) {
     updated[index + 1] = updated[index];
     updated[index] = temp;
     setProducts(updated);
-    setLocalProducts(updated);
   };
 
   const handleSaveOrder = async () => {
     setIsSavingOrder(true);
     setOrderSavedMsg(false);
-    setLocalProducts(products);
     try {
       const productIds = products.map(p => p.id);
       const res = await apiFetch('/api/admin/products/reorder', {
@@ -120,25 +126,23 @@ export function ProductsManager({ token }) {
         setTimeout(() => setOrderSavedMsg(false), 3000);
       }
     } catch (err) {
-      alert('Product order saved locally. Note: Backend API notice: ' + err.message);
+      alert('Error saving product order: ' + err.message);
     } finally {
       setIsSavingOrder(false);
     }
   };
 
   const handleDelete = (id) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
-    const updated = products.filter(p => p.id !== id);
-    setProducts(updated);
-    setLocalProducts(updated);
-
+    if (!window.confirm('Are you sure you want to delete this product from the store database?')) return;
+    
+    const authToken = token || localStorage.getItem('qge_token') || '';
     apiFetch(`/api/admin/products/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${authToken}` }
     })
       .then(res => res.json())
       .then(() => fetchProducts())
-      .catch(() => {});
+      .catch((err) => alert('Error deleting product: ' + err.message));
   };
 
   const handleSubmit = async (e) => {
@@ -149,27 +153,6 @@ export function ProductsManager({ token }) {
     }
 
     setIsSaving(true);
-    const newProductObj = {
-      id: editingProduct ? editingProduct.id : `prod-${Date.now()}`,
-      ...formData,
-      price: parseFloat(formData.price),
-      originalPrice: parseFloat(formData.originalPrice || formData.price),
-      stock: parseInt(formData.stock, 10),
-      rating: editingProduct ? editingProduct.rating : 5.0,
-      reviewsCount: editingProduct ? editingProduct.reviewsCount : 0,
-      createdAt: editingProduct ? editingProduct.createdAt : new Date().toISOString()
-    };
-
-    // Update local state and local storage immediately for instant reactivity
-    let nextProducts = [];
-    if (editingProduct) {
-      nextProducts = products.map(p => p.id === editingProduct.id ? newProductObj : p);
-    } else {
-      nextProducts = [newProductObj, ...products];
-    }
-    setProducts(nextProducts);
-    setLocalProducts(nextProducts);
-
     const authToken = token || localStorage.getItem('qge_token') || '';
     const endpoint = editingProduct ? `/api/admin/products/${editingProduct.id}` : '/api/admin/products';
     const method = editingProduct ? 'PUT' : 'POST';
@@ -189,24 +172,23 @@ export function ProductsManager({ token }) {
         })
       });
 
-      const data = await res.json();
-
-      if (res.ok && data && data.id) {
-        // Replace temporary local object with official server object
-        const updatedWithServer = nextProducts.map(p => p.id === newProductObj.id ? { ...p, ...data } : p);
-        setProducts(updatedWithServer);
-        setLocalProducts(updatedWithServer);
+      if (res.ok) {
+        setIsModalOpen(false);
+        fetchProducts();
       } else {
-        console.warn('Backend API notice on save:', data?.error || 'Local save active');
+        const errData = await res.json().catch(() => ({}));
+        alert('Failed to save product: ' + (errData.error || 'Server error'));
       }
-
-      setIsModalOpen(false);
     } catch (err) {
-      console.warn('Backend API save notice:', err.message);
-      setIsModalOpen(false);
+      alert('Error saving product to database: ' + err.message);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const getCollectionName = (catId) => {
+    const found = categories.find(c => c.id === catId || c.slug === catId);
+    return found ? found.name : (catId || 'Catalog').replace('-', ' ');
   };
 
   return (
@@ -215,10 +197,10 @@ export function ProductsManager({ token }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-outline-variant pb-4">
         <div>
-          <span className="text-xs uppercase font-label-bold text-primary tracking-widest">Inventory Management</span>
-          <h1 className="font-headline font-bold text-2xl text-on-surface">Products & Dynamic Prices</h1>
+          <span className="text-xs uppercase font-label-bold text-primary tracking-widest">Inventory & Store Collections</span>
+          <h1 className="font-headline font-bold text-2xl text-on-surface">Products & Dynamic Collections</h1>
           <p className="text-xs text-on-surface-variant mt-0.5">
-            Assign products to store collections and reorder display arrangement across store pages.
+            Assign products to store collections (Photo Frames, Acrylic Sheets, Canvas Prints, Custom Gifts, Passport Studio) and reorder catalog display.
           </p>
         </div>
 
@@ -262,8 +244,8 @@ export function ProductsManager({ token }) {
             <thead className="bg-surface-container-high text-on-surface uppercase border-b border-outline-variant font-label-bold">
               <tr>
                 <th className="p-3 w-16">Order</th>
-                <th className="p-3">Product</th>
-                <th className="p-3">Collection / Category</th>
+                <th className="p-3">Product Title</th>
+                <th className="p-3">Assigned Collection</th>
                 <th className="p-3">Price</th>
                 <th className="p-3">Stock</th>
                 <th className="p-3">Attributes</th>
@@ -276,38 +258,30 @@ export function ProductsManager({ token }) {
                   <td colSpan={7} className="p-8 text-center text-on-surface-variant">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <span className="material-symbols-outlined text-3xl text-primary/60">inventory_2</span>
-                      <p className="font-bold text-on-surface text-sm">No Products in Inventory Catalog</p>
+                      <p className="font-bold text-on-surface text-sm">No Products in Store Catalog</p>
                       <p className="text-xs text-on-surface-variant max-w-sm">
-                        Preloaded products have been cleared. Click "Add New Product" to upload product image files directly from your computer and set custom prices!
+                        Click "Add New Product" to create products and assign them to your store collections.
                       </p>
-                      <button
-                        onClick={handleOpenAdd}
-                        className="mt-2 bg-primary text-on-primary font-bold text-xs uppercase px-4 py-2 rounded shadow-md"
-                      >
-                        + Add First Product
-                      </button>
                     </div>
                   </td>
                 </tr>
               ) : (
-                products.map((prod, idx) => (
+                products.map((prod, index) => (
                   <tr key={prod.id} className="hover:bg-surface-container-high/50">
                     <td className="p-3">
-                      <div className="flex items-center space-x-1 text-on-surface-variant">
+                      <div className="flex items-center space-x-1">
                         <button
-                          type="button"
-                          disabled={idx === 0}
-                          onClick={() => handleMoveUp(idx)}
-                          className="hover:text-primary disabled:opacity-30"
+                          onClick={() => handleMoveUp(index)}
+                          disabled={index === 0}
+                          className="p-1 text-on-surface-variant hover:text-primary disabled:opacity-30"
                           title="Move Up"
                         >
                           <span className="material-symbols-outlined text-sm">arrow_upward</span>
                         </button>
                         <button
-                          type="button"
-                          disabled={idx === products.length - 1}
-                          onClick={() => handleMoveDown(idx)}
-                          className="hover:text-primary disabled:opacity-30"
+                          onClick={() => handleMoveDown(index)}
+                          disabled={index === products.length - 1}
+                          className="p-1 text-on-surface-variant hover:text-primary disabled:opacity-30"
                           title="Move Down"
                         >
                           <span className="material-symbols-outlined text-sm">arrow_downward</span>
@@ -315,17 +289,27 @@ export function ProductsManager({ token }) {
                       </div>
                     </td>
 
-                    <td className="p-3 flex items-center space-x-3">
-                      <img src={getAssetUrl(prod.image)} alt={prod.name} className="w-10 h-10 object-cover rounded border border-outline-variant" />
-                      <div>
-                        <div className="font-semibold text-on-surface">{prod.name}</div>
-                        <div className="text-[10px] text-on-surface-variant line-clamp-1">{prod.description}</div>
+                    <td className="p-3">
+                      <div className="flex items-center space-x-3">
+                        <img
+                          src={getAssetUrl(prod.image)}
+                          alt={prod.name}
+                          className="w-10 h-10 object-cover rounded border border-outline-variant shrink-0 bg-background"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80";
+                          }}
+                        />
+                        <div>
+                          <div className="font-bold text-on-surface text-xs line-clamp-1">{prod.name}</div>
+                          <div className="text-[10px] text-on-surface-variant font-mono">ID: {prod.id}</div>
+                        </div>
                       </div>
                     </td>
 
-                    <td className="p-3 text-on-surface font-medium">
-                      <span className="bg-surface-container-high text-primary border border-outline-variant px-2 py-0.5 rounded text-[11px] font-bold">
-                        {categories.find(c => c.id === prod.categoryId)?.name || prod.categoryId}
+                    <td className="p-3">
+                      <span className="inline-block bg-primary/10 border border-primary/40 text-primary font-bold px-2 py-0.5 rounded text-[10px] uppercase">
+                        {getCollectionName(prod.categoryId || prod.category_id)}
                       </span>
                     </td>
 
@@ -376,7 +360,7 @@ export function ProductsManager({ token }) {
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-surface-container-low border border-outline-variant rounded p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl">
             <h2 className="font-headline font-bold text-lg text-on-surface border-b border-outline-variant pb-2">
-              {editingProduct ? 'Edit Product Details' : 'Add New Product'}
+              {editingProduct ? 'Edit Product & Collection Assignment' : 'Add New Product to Store Collection'}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-3 text-xs">
@@ -385,22 +369,23 @@ export function ProductsManager({ token }) {
                 <input
                   type="text"
                   required
+                  placeholder="e.g. Classic Walnut Wooden Frame"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary"
+                  className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-on-surface font-semibold mb-1">Category *</label>
+                  <label className="block text-on-surface font-semibold mb-1">Assign to Store Collection *</label>
                   <select
                     value={formData.categoryId}
                     onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                    className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary"
+                    className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary font-medium"
                   >
                     {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                      <option key={c.id} value={c.id || c.slug}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -410,9 +395,10 @@ export function ProductsManager({ token }) {
                   <input
                     type="number"
                     required
+                    min="0"
                     value={formData.stock}
                     onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                    className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary"
+                    className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary font-medium"
                   />
                 </div>
               </div>
@@ -423,9 +409,11 @@ export function ProductsManager({ token }) {
                   <input
                     type="number"
                     required
+                    min="0"
+                    placeholder="899"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary"
+                    className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary font-medium"
                   />
                 </div>
 
@@ -433,9 +421,11 @@ export function ProductsManager({ token }) {
                   <label className="block text-on-surface font-semibold mb-1">Original MRP Price (₹)</label>
                   <input
                     type="number"
+                    min="0"
+                    placeholder="1299"
                     value={formData.originalPrice}
                     onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
-                    className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary"
+                    className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary font-medium"
                   />
                 </div>
               </div>
@@ -444,30 +434,30 @@ export function ProductsManager({ token }) {
                 <label className="block text-on-surface font-semibold mb-1">Product Description</label>
                 <textarea
                   rows={3}
+                  placeholder="Describe your frame moulding material, glass clarity, or custom printing specifications..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary"
+                  className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary font-medium"
                 />
               </div>
 
-              {/* Upload Product Image File */}
               <FileUploadInput
-                label="Upload Product Image File *"
+                label="Product Image File *"
                 value={formData.image}
-                token={token}
                 onChange={(url) => setFormData({ ...formData, image: url })}
-                aspectHint="PNG, JPG, WEBP format (Optimized image size: 80 KB to 1.5 MB)"
+                token={token}
+                aspectHint="PNG, JPG, WEBP formats (Max 5MB)"
               />
 
-              <div className="flex space-x-4 pt-2">
+              <div className="pt-2 grid grid-cols-2 gap-4 bg-surface-container-high/40 p-3 rounded border border-outline-variant">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formData.isCustomizable}
                     onChange={(e) => setFormData({ ...formData, isCustomizable: e.target.checked })}
-                    className="accent-primary rounded"
+                    className="rounded text-primary focus:ring-primary h-4 w-4"
                   />
-                  <span>Allow Custom Photo Upload</span>
+                  <span className="text-on-surface font-semibold">Enable Custom Photo Upload</span>
                 </label>
 
                 <label className="flex items-center space-x-2 cursor-pointer">
@@ -475,35 +465,46 @@ export function ProductsManager({ token }) {
                     type="checkbox"
                     checked={formData.isFrame}
                     onChange={(e) => setFormData({ ...formData, isFrame: e.target.checked })}
-                    className="accent-primary rounded"
+                    className="rounded text-primary focus:ring-primary h-4 w-4"
                   />
-                  <span>Enable Frame Studio Preview</span>
+                  <span className="text-on-surface font-semibold">Enable Custom Frame Studio</span>
                 </label>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-outline-variant">
+              {formData.isFrame && (
+                <div>
+                  <label className="block text-on-surface font-semibold mb-1">Frame Material Specs</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Organic Walnut Solid Wood, 99.9% Clear Glass"
+                    value={formData.frameMaterial}
+                    onChange={(e) => setFormData({ ...formData, frameMaterial: e.target.value })}
+                    className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2 rounded focus:outline-none focus:border-primary font-medium"
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-3 pt-3 border-t border-outline-variant">
                 <button
                   type="button"
-                  disabled={isSaving}
                   onClick={() => setIsModalOpen(false)}
-                  className="bg-surface-container-high text-on-surface px-4 py-2 rounded disabled:opacity-50"
+                  className="px-4 py-2 bg-surface-container-high text-on-surface rounded hover:bg-surface-container-highest transition-colors font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="bg-primary text-on-primary font-bold uppercase px-6 py-2 rounded disabled:opacity-50 flex items-center space-x-2"
+                  className="px-6 py-2 bg-primary text-on-primary font-bold rounded hover:bg-primary-fixed transition-colors flex items-center space-x-1 shadow-lg shadow-primary/20 disabled:opacity-50"
                 >
                   {isSaving && <span className="material-symbols-outlined text-sm animate-spin">sync</span>}
-                  <span>{isSaving ? 'Saving Product...' : 'Save Product'}</span>
+                  <span>{isSaving ? 'Saving...' : (editingProduct ? 'Save Changes' : 'Publish Product')}</span>
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }
