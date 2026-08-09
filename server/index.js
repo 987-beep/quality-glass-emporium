@@ -3,9 +3,8 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { v2 as cloudinary } from 'cloudinary';
 import { fileURLToPath } from 'url';
-import { query, initDb } from './db.js';
+import { query, initDb, defaultUsers } from './db.js';
 import { generateToken, verifyToken, authMiddleware, adminOnlyMiddleware } from './auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,20 +15,6 @@ const PORT = process.env.PORT || 5000;
 
 // Initialize Database Schemas & Seed Defaults
 initDb();
-
-// Cloudinary Configuration
-if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-    secure: true
-  });
-} else if (process.env.CLOUDINARY_URL) {
-  cloudinary.config({
-    secure: true
-  });
-}
 
 app.use(cors({
   origin: '*',
@@ -44,15 +29,22 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Uploads static directory for local fallback
+// Uploads static directory
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 app.use('/uploads', express.static(uploadDir));
 
-// Multer Storage (Memory storage for Cloudinary streaming & disk fallback)
-const storage = multer.memoryStorage();
+// Multer Disk Storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, 'user-photo-' + uniqueSuffix + ext);
+  }
+});
 const upload = multer({ storage });
 
 // Helper to parse JSON fields safely
@@ -234,49 +226,16 @@ app.get('/api/banners', async (req, res) => {
   }
 });
 
-// Upload File (Supports Cloudinary CDN & Disk Fallback)
-app.post('/api/upload', upload.any(), async (req, res) => {
-  try {
-    const file = (req.files && req.files.length > 0) ? req.files[0] : req.file;
-    if (!file) {
-      return res.status(400).json({ error: 'No image file uploaded' });
-    }
-
-    const isCloudinaryConfigured = Boolean(
-      (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) ||
-      process.env.CLOUDINARY_URL
-    );
-
-    if (isCloudinaryConfigured && file.buffer) {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'quality_glass_emporium',
-          transformation: [{ quality: 'auto', fetch_format: 'auto' }]
-        },
-        (error, result) => {
-          if (error) {
-            console.error('Cloudinary upload error:', error);
-            return res.status(500).json({ error: 'Cloudinary upload failed: ' + error.message });
-          }
-          return res.json({ url: result.secure_url, filename: result.public_id });
-        }
-      );
-      uploadStream.end(file.buffer);
-    } else {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      const ext = path.extname(file.originalname || '') || '.jpg';
-      const filename = 'user-photo-' + uniqueSuffix + ext;
-      const filePath = path.join(uploadDir, filename);
-
-      if (file.buffer) {
-        fs.writeFileSync(filePath, file.buffer);
-      }
-      const fileUrl = `/uploads/${filename}`;
-      return res.json({ url: fileUrl, filename });
-    }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+// Upload File
+app.post('/api/upload', upload.any(), (req, res) => {
+  if (req.files && req.files.length > 0) {
+    const fileUrl = `/uploads/${req.files[0].filename}`;
+    return res.json({ url: fileUrl, filename: req.files[0].filename });
+  } else if (req.file) {
+    const fileUrl = `/uploads/${req.file.filename}`;
+    return res.json({ url: fileUrl, filename: req.file.filename });
   }
+  return res.status(400).json({ error: 'No image file uploaded' });
 });
 
 // Verify Coupon
