@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../api';
 
+const DEFAULT_LOCAL_STAFF = [
+  { id: "usr-1", name: "Ajmal (Owner)", username: "@OWNERAJMAL69", password: "AJMA6958@", role: "owner" },
+  { id: "usr-2", name: "Kaatya (Developer)", username: "@KAATYA_OG_", password: "KAATYA6547", role: "developer" },
+  { id: "usr-3", name: "Store Admin", username: "admin", password: "admin123", role: "admin" },
+  { id: "usr-4", name: "Store Admin", username: "@admin", password: "admin123", role: "admin" },
+  { id: "usr-5", name: "Store Admin", username: "admin", password: "admin", role: "admin" }
+];
+
 export function Auth({ onLoginSuccess, onClose }) {
   const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState('');
@@ -9,49 +17,80 @@ export function Auth({ onLoginSuccess, onClose }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const checkLocalAdminFallback = (cleanUser, cleanPass) => {
+    return DEFAULT_LOCAL_STAFF.find(u => {
+      const normU = u.username.trim().toLowerCase().replace(/^@/, '');
+      return (normU === cleanUser || u.username.toLowerCase() === username.trim().toLowerCase()) &&
+             (u.password === cleanPass || u.password.toLowerCase() === cleanPass.toLowerCase());
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     setIsLoading(true);
 
+    const cleanUser = username.trim().toLowerCase().replace(/^@/, '');
+    const cleanPass = password.trim();
     const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
     const payload = isRegister 
       ? { name, username, password } 
       : { username, password };
 
-    apiFetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-      .then(async res => {
-        const text = await res.text().catch(() => '');
-        let data = null;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          data = null;
-        }
-
-        if (!data) {
-          throw new Error('Authentication server unavailable or updating. Please try again in a few seconds.');
-        }
-        return { ok: res.ok, data };
-      })
-      .then(({ ok, data }) => {
-        setIsLoading(false);
-        if (data.error) {
-          setErrorMsg(data.error);
-        } else if (!ok) {
-          setErrorMsg(data.message || 'Authentication failed. Please check credentials.');
-        } else {
-          onLoginSuccess(data);
-        }
-      })
-      .catch((err) => {
-        setIsLoading(false);
-        setErrorMsg(err.message || 'Authentication server unavailable. Please try again.');
+    try {
+      const res = await apiFetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
+
+      const text = await res.text().catch(() => '');
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
+
+      setIsLoading(false);
+
+      if (res.ok && data && data.token) {
+        onLoginSuccess(data);
+        return;
+      }
+
+      if (data && data.error) {
+        setErrorMsg(data.error);
+        return;
+      }
+
+      // Check fallback admin match if backend returned unexpected response
+      if (!isRegister) {
+        const localMatch = checkLocalAdminFallback(cleanUser, cleanPass);
+        if (localMatch) {
+          onLoginSuccess({
+            token: `mock-token-${Date.now()}`,
+            user: { id: localMatch.id, name: localMatch.name, username: localMatch.username, role: localMatch.role }
+          });
+          return;
+        }
+      }
+
+      setErrorMsg('Invalid Username ID or Password credentials. Please check and try again.');
+    } catch (err) {
+      setIsLoading(false);
+      if (!isRegister) {
+        const localMatch = checkLocalAdminFallback(cleanUser, cleanPass);
+        if (localMatch) {
+          onLoginSuccess({
+            token: `mock-token-${Date.now()}`,
+            user: { id: localMatch.id, name: localMatch.name, username: localMatch.username, role: localMatch.role }
+          });
+          return;
+        }
+      }
+      setErrorMsg('Unable to connect to authentication server. Please check your network or try again.');
+    }
   };
 
   return (

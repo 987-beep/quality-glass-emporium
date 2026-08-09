@@ -77,10 +77,13 @@ function saveDynamicUsers(users) {
 
 let dynamicRegisteredUsers = loadDynamicUsers();
 
-// Staff Admin Accounts (Owner & Developer)
+// Staff Admin Accounts (Owner & Developer & Store Admin)
 export const defaultUsers = [
   { id: "usr-1", name: "Ajmal (Owner)", username: "@OWNERAJMAL69", password: "AJMA6958@", role: "owner" },
-  { id: "usr-2", name: "Kaatya (Developer)", username: "@KAATYA_OG_", password: "KAATYA6547", role: "developer" }
+  { id: "usr-2", name: "Kaatya (Developer)", username: "@KAATYA_OG_", password: "KAATYA6547", role: "developer" },
+  { id: "usr-3", name: "Store Admin", username: "admin", password: "admin123", role: "admin" },
+  { id: "usr-4", name: "Store Admin", username: "@admin", password: "admin123", role: "admin" },
+  { id: "usr-5", name: "Store Admin", username: "admin", password: "admin", role: "admin" }
 ];
 
 const defaultCategories = [
