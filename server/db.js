@@ -2,9 +2,17 @@ import pg from 'pg';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('placeholder'));
+
+export const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 const isPostgres = Boolean(process.env.POSTGRES_URL || process.env.DATABASE_URL);
 const isVercel = Boolean(process.env.VERCEL);
@@ -12,7 +20,6 @@ const isVercel = Boolean(process.env.VERCEL);
 let pgPool = null;
 let sqliteDb = null;
 
-// Initialize Postgres or Safe SQLite
 if (isPostgres) {
   try {
     const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
@@ -21,14 +28,13 @@ if (isPostgres) {
       ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false }
     });
   } catch (err) {
-    console.warn("Postgres pool creation warning:", err.message);
+    console.warn("Postgres pool creation notice:", err.message);
   }
-} else {
-  // Dynamically load SQLite only when NOT running on Vercel serverless
+} else if (!isVercel) {
   try {
     const sqlite3Mod = await import('sqlite3');
     const sqlite3 = sqlite3Mod.default || sqlite3Mod;
-    const dbPath = isVercel ? '/tmp/database.sqlite' : path.join(__dirname, 'database.sqlite');
+    const dbPath = path.join(__dirname, 'database.sqlite');
     sqliteDb = new sqlite3.Database(dbPath);
   } catch (err) {
     console.warn("SQLite optional load notice:", err.message);
@@ -65,7 +71,12 @@ export async function query(sqlText, params = []) {
   }
 }
 
-// Default Seed Data
+// Staff Admin Accounts (Owner & Developer)
+export const defaultUsers = [
+  { id: "usr-1", name: "Ajmal (Owner)", username: "@OWNERAJMAL69", password: "AJMA6958@", role: "owner" },
+  { id: "usr-2", name: "Kaatya (Developer)", username: "@KAATYA_OG_", password: "KAATYA6547", role: "developer" }
+];
+
 const defaultCategories = [
   { id: "photo-frames", name: "Photo Frames", slug: "photo-frames", description: "Bespoke Wood, Metal & Glass Frames", image: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80", icon: "frame", display_order: 1 },
   { id: "acrylic-frames", name: "Acrylic Frames & Sheets", slug: "acrylic-frames", description: "Luminous Frameless Acrylic Blocks & Custom Cut Sheets", image: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80", icon: "aspect_ratio", display_order: 2 },
@@ -129,11 +140,6 @@ const defaultProducts = [
   }
 ];
 
-export const defaultUsers = [
-  { id: "usr-1", name: "Ajmal (Owner)", username: "@OWNERAJMAL69", password: "AJMA6958@", role: "owner" },
-  { id: "usr-2", name: "Kaatya (Developer)", username: "@KAATYA_OG_", password: "KAATYA6547", role: "developer" }
-];
-
 const defaultBanners = [
   {
     id: "banner-1",
@@ -157,29 +163,6 @@ const defaultBanners = [
   }
 ];
 
-const defaultCoupons = [
-  {
-    id: "coup-1",
-    code: "WELCOME10",
-    discount_type: "percentage",
-    discount_value: 10,
-    min_spend: 499,
-    expiry_date: "2027-12-31",
-    usage_count: 14,
-    is_active: true
-  },
-  {
-    id: "coup-2",
-    code: "LUXE200",
-    discount_type: "flat",
-    discount_value: 200,
-    min_spend: 1499,
-    expiry_date: "2027-12-31",
-    usage_count: 8,
-    is_active: true
-  }
-];
-
 let dbInitialized = false;
 
 // Initialize Database Tables & Seed Once
@@ -190,7 +173,7 @@ export async function initDb() {
     const jsonType = isPg ? 'JSONB' : 'TEXT';
     const tsType = isPg ? 'TIMESTAMP WITH TIME ZONE' : 'DATETIME';
 
-    // 1. Users Table
+    // 1. Users / Profiles Table
     await query(`
       CREATE TABLE IF NOT EXISTS users (
         id VARCHAR(255) PRIMARY KEY,
@@ -331,49 +314,7 @@ export async function initDb() {
       );
     `).catch(() => {});
 
-    // 9. Shipping Settings Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS shipping_settings (
-        id INT PRIMARY KEY DEFAULT 1,
-        free_shipping_threshold NUMERIC(10, 2) DEFAULT 999.00,
-        flat_shipping_rate NUMERIC(10, 2) DEFAULT 79.00,
-        express_delivery_rate NUMERIC(10, 2) DEFAULT 149.00,
-        enable_local_pickup BOOLEAN DEFAULT TRUE,
-        estimated_delivery_days VARCHAR(100) DEFAULT '2-4 Business Days'
-      );
-    `).catch(() => {});
-
-    // 10. Tax Settings Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS tax_settings (
-        id INT PRIMARY KEY DEFAULT 1,
-        tax_rate_percentage NUMERIC(5, 2) DEFAULT 18.00,
-        include_tax_in_price BOOLEAN DEFAULT TRUE,
-        gstin_number VARCHAR(100) DEFAULT '09AAAFQ1234A1Z5'
-      );
-    `).catch(() => {});
-
-    // 11. Payment Settings Table
-    await query(`
-      CREATE TABLE IF NOT EXISTS payment_settings (
-        id INT PRIMARY KEY DEFAULT 1,
-        qr_code_enabled BOOLEAN DEFAULT TRUE,
-        upi_id VARCHAR(255) DEFAULT 'qualityglass@upi',
-        account_holder VARCHAR(255) DEFAULT 'Quality Glass Emporium',
-        qr_image_url TEXT DEFAULT 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium',
-        qr_instructions TEXT DEFAULT 'Scan the Admin uploaded QR code using GPay, PhonePe, Paytm, or BHIM. Enter your 12-digit UTR transaction reference number and upload the screenshot proof.',
-        bank_transfer_enabled BOOLEAN DEFAULT TRUE,
-        bank_name VARCHAR(255) DEFAULT 'State Bank of India',
-        account_number VARCHAR(255) DEFAULT '389201004921',
-        ifsc_code VARCHAR(100) DEFAULT 'SBIN0000465',
-        branch VARCHAR(255) DEFAULT 'Raebareli Main Branch',
-        bank_instructions TEXT DEFAULT 'Transfer total order amount via IMPS / NEFT / RTGS to the store bank account. Enter your 12-digit Bank UTR reference number and upload the payment screenshot proof.',
-        cod_enabled BOOLEAN DEFAULT TRUE
-      );
-    `).catch(() => {});
-
     // --- SEED DEFAULTS ONCE IF EMPTY ---
-    // Clean up sample customer accounts
     await query(`DELETE FROM users WHERE role = 'customer' OR id = 'usr-3' OR LOWER(username) LIKE '%rahul%'`).catch(() => {});
 
     const existingUsers = await query(`SELECT COUNT(*) as count FROM users`).catch(() => []);
@@ -388,8 +329,7 @@ export async function initDb() {
     }
 
     const existingCats = await query(`SELECT COUNT(*) as count FROM categories`).catch(() => []);
-    const cCount = parseInt(existingCats[0]?.count || 0, 10);
-    if (cCount === 0) {
+    if (parseInt(existingCats[0]?.count || 0, 10) === 0) {
       for (const c of defaultCategories) {
         await query(
           `INSERT INTO categories (id, name, slug, description, image, icon, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -399,8 +339,7 @@ export async function initDb() {
     }
 
     const existingProds = await query(`SELECT COUNT(*) as count FROM products`).catch(() => []);
-    const pCount = parseInt(existingProds[0]?.count || 0, 10);
-    if (pCount === 0) {
+    if (parseInt(existingProds[0]?.count || 0, 10) === 0) {
       for (const p of defaultProducts) {
         await query(
           `INSERT INTO products (id, name, slug, category_id, price, original_price, stock, rating, reviews_count, description, image, is_customizable, is_frame, frame_material, display_order) 
@@ -419,78 +358,6 @@ export async function initDb() {
           [b.id, b.title, b.subtitle, b.image_url, b.cta_text, b.cta_link, b.display_order, b.is_active]
         ).catch(() => {});
       }
-    }
-
-    const existingCoupons = await query(`SELECT COUNT(*) as count FROM coupons`).catch(() => []);
-    if (parseInt(existingCoupons[0]?.count || 0, 10) === 0) {
-      for (const coup of defaultCoupons) {
-        await query(
-          `INSERT INTO coupons (id, code, discount_type, discount_value, min_spend, expiry_date, usage_count, is_active)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [coup.id, coup.code, coup.discount_type, coup.discount_value, coup.min_spend, coup.expiry_date, coup.usage_count, coup.is_active]
-        ).catch(() => {});
-      }
-    }
-
-    const existingSettings = await query(`SELECT COUNT(*) as count FROM site_settings`).catch(() => []);
-    if (parseInt(existingSettings[0]?.count || 0, 10) === 0) {
-      const hero = JSON.stringify({
-        badge: "Quality Glass Emporium • Raebareli",
-        title: "Curate Your Space with Bespoke Framing.",
-        subtitle: "Museum-quality bespoke wood, metal & floating acrylic frames designed to elevate your memories. Handcrafted precision meets digital photo studio.",
-        bgImage: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80",
-        primaryCtaText: "🎨 Launch Frame Studio",
-        primaryCtaLink: "frame-studio",
-        secondaryCtaText: "📸 Passport Photo Studio",
-        secondaryCtaLink: "passport-studio"
-      });
-      const promo = JSON.stringify({
-        badge: "Specialized Gift Shop",
-        title: "Personalized 3D Photo Lamps, Custom Mugs & Keychains",
-        description: "Create unforgettable keepsakes! Print your loved ones' photos on warm glowing 3D acrylic lamps, heat-sensitive magic mugs, customized T-shirts, mobile cases, and keychains with lifetime print guarantee.",
-        image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=1000&q=80",
-        ctaText: "Shop Custom Gifts",
-        ctaLink: "custom-gifts"
-      });
-      const annBar = JSON.stringify({
-        enabled: true,
-        text: "⚡ Special Offer: Free Express Shipping on Custom Frame & Glass Orders above ₹999 in Raebareli!",
-        link: "/collection",
-        bgStyle: "primary"
-      });
-      const headlines = JSON.stringify({
-        categoriesTitle: "Framing & Gift Collections",
-        categoriesSubtitle: "Store Taxonomy",
-        productsTitle: "Trending Framing & Custom Gifts",
-        productsSubtitle: "Handcrafted Products"
-      });
-      const feats = JSON.stringify([
-        { icon: "workspace_premium", title: "Museum-Grade Quality", description: "Organic solid wood moulding & 99.9% optical clear glass." },
-        { icon: "center_focus_strong", title: "Instant AI Passport Studio", description: "Compliant biometric photos with background replacement." },
-        { icon: "palette", title: "Custom 3D Gift Printing", description: "Personalized photo lamps, mugs, keychains & acrylic cutouts." },
-        { icon: "local_shipping", title: "Raebareli Express Delivery", description: "Same-day doorstep delivery & local store pickup available." }
-      ]);
-
-      await query(
-        `INSERT INTO site_settings (id, hero_config, promo_config, announcement_bar, section_headlines, features)
-         VALUES (1, ?, ?, ?, ?, ?)`,
-        [hero, promo, annBar, headlines, feats]
-      ).catch(() => {});
-    }
-
-    const existingShip = await query(`SELECT COUNT(*) as count FROM shipping_settings`).catch(() => []);
-    if (parseInt(existingShip[0]?.count || 0, 10) === 0) {
-      await query(`INSERT INTO shipping_settings (id) VALUES (1)`).catch(() => {});
-    }
-
-    const existingTax = await query(`SELECT COUNT(*) as count FROM tax_settings`).catch(() => []);
-    if (parseInt(existingTax[0]?.count || 0, 10) === 0) {
-      await query(`INSERT INTO tax_settings (id) VALUES (1)`).catch(() => {});
-    }
-
-    const existingPay = await query(`SELECT COUNT(*) as count FROM payment_settings`).catch(() => []);
-    if (parseInt(existingPay[0]?.count || 0, 10) === 0) {
-      await query(`INSERT INTO payment_settings (id) VALUES (1)`).catch(() => {});
     }
 
     dbInitialized = true;
