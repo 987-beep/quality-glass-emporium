@@ -70,12 +70,11 @@ export const defaultUsers = [
 ];
 
 const defaultCategories = [
-  { id: "photo-frames", name: "Photo Frames", slug: "photo-frames", description: "Bespoke Wood, Metal & Glass Frames", image: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80", icon: "frame", display_order: 1 },
-  { id: "acrylic-frames", name: "Acrylic Frames & Sheets", slug: "acrylic-frames", description: "Luminous Frameless Acrylic Blocks & Custom Cut Sheets", image: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80", icon: "aspect_ratio", display_order: 2 },
-  { id: "canvas-prints", name: "Canvas Prints", slug: "canvas-prints", description: "Gallery Wrapped Cotton Canvas Art Prints", image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=600&q=80", icon: "palette", display_order: 3 },
-  { id: "photo-studio", name: "Photo Studio & Passport", slug: "photo-studio", description: "Digital Photo Printing, Passport/Visa Photos & Lamination", image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80", icon: "center_focus_strong", display_order: 4 },
-  { id: "custom-gifts", name: "Customized Gifts", slug: "custom-gifts", description: "Photo Lamps, Custom Mugs, T-Shirts, Keychains & Covers", image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=600&q=80", icon: "redeem", display_order: 5 },
-  { id: "photo-albums", name: "Photo Albums & Memory Books", slug: "photo-albums", description: "Leatherette & Hardcover Wedding & Event Albums", image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80", icon: "auto_stories", display_order: 6 }
+  { id: "anime", name: "Anime", slug: "anime", description: "Vibrant Anime Wall Posters, Glass Art & Acrylic Displays", image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80", icon: "smart_toy", display_order: 1 },
+  { id: "religious", name: "Religious", slug: "religious", description: "Sacred Devotional Photo Frames, Glass Icons & Wall Shrine Prints", image: "https://images.unsplash.com/photo-1609137144813-7d9921338f24?auto=format&fit=crop&w=600&q=80", icon: "temple_hindu", display_order: 2 },
+  { id: "manwha", name: "Manwha", slug: "manwha", description: "Korean Webtoon & Manwha Character Art & Glass Prints", image: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=600&q=80", icon: "auto_stories", display_order: 3 },
+  { id: "gifts", name: "Gifts", slug: "gifts", description: "Customized Photo Lamps, Mugs, Keychains & Personal Keepsakes", image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=600&q=80", icon: "redeem", display_order: 4 },
+  { id: "acrylic-frames", name: "Acrylic Frames", slug: "acrylic-frames", description: "Luminous Frameless Acrylic Blocks & Custom Cut Sheets", image: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80", icon: "aspect_ratio", display_order: 5 }
 ];
 
 const defaultProducts = [

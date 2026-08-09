@@ -3,12 +3,11 @@ import { apiFetch, getAssetUrl } from '../api';
 import { FileUploadInput } from '../components/FileUploadInput';
 
 const DEFAULT_STORE_COLLECTIONS = [
-  { id: "photo-frames", name: "Photo Frames" },
-  { id: "acrylic-frames", name: "Acrylic Frames & Sheets" },
-  { id: "canvas-prints", name: "Canvas Prints" },
-  { id: "photo-studio", name: "Photo Studio & Passport" },
-  { id: "custom-gifts", name: "Customized Gifts" },
-  { id: "photo-albums", name: "Photo Albums & Memory Books" }
+  { id: "anime", name: "Anime" },
+  { id: "religious", name: "Religious" },
+  { id: "manwha", name: "Manwha" },
+  { id: "gifts", name: "Gifts" },
+  { id: "acrylic-frames", name: "Acrylic Frames" }
 ];
 
 export function ProductsManager({ token }) {
