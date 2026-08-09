@@ -26,31 +26,33 @@ export function OrdersManager({ token }) {
   }, []);
 
   const handleApprovePayment = (orderId, action) => {
+    const authToken = token || localStorage.getItem('qge_token') || '';
     apiFetch(`/api/admin/orders/${orderId}/approve-payment`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${authToken}`
       },
       body: JSON.stringify({ action })
     })
       .then(res => res.json())
       .then(() => fetchOrders())
-      .catch(() => {});
+      .catch((err) => alert('Error approving order payment: ' + err.message));
   };
 
   const handleUpdateStatus = (orderId, status, trackingNo) => {
+    const authToken = token || localStorage.getItem('qge_token') || '';
     apiFetch(`/api/admin/orders/${orderId}/status`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${authToken}`
       },
       body: JSON.stringify({ orderStatus: status, trackingNumber: trackingNo })
     })
       .then(res => res.json())
       .then(() => fetchOrders())
-      .catch(() => {});
+      .catch((err) => alert('Error updating order status: ' + err.message));
   };
 
   return (
