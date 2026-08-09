@@ -19,7 +19,6 @@ dist-ssr/
 server/*.sqlite
 server/test_persistence.js
 server/test_full_persistence.js
-server/test_live_vercel.js
 server/test_user_registration.js
 server/publish_5_anime_products.js
 

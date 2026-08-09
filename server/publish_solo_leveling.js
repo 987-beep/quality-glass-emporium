@@ -37,7 +37,7 @@ function fetchUrl(url, options = {}, bodyData = null) {
 
 async function publishSoloLevelingProduct() {
   console.log('=== PUBLISHING SOLO LEVELING ANIME PRODUCT TO LIVE WEBSITE ===');
-  const baseUrl = 'https://quality-glass-emporium.vercel.app';
+  const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
   
   // 1. Admin Sign In
   console.log('\n1. Signing in as Admin Owner (@OWNERAJMAL69)...');
