@@ -406,19 +406,55 @@ export async function initDb() {
       await pgPool.query(`CREATE TABLE IF NOT EXISTS orders (id VARCHAR(255) PRIMARY KEY, order_number VARCHAR(255), user_id VARCHAR(255), username VARCHAR(255), customer_name VARCHAR(255), customer_email VARCHAR(255), customer_phone VARCHAR(255), shipping_address TEXT, total_amount NUMERIC(10,2), discount_amount NUMERIC(10,2), shipping_fee NUMERIC(10,2), tax_amount NUMERIC(10,2), payment_method VARCHAR(255), utr_number VARCHAR(255), payment_screenshot TEXT, payment_status VARCHAR(255), payment_approval_status VARCHAR(255), order_status VARCHAR(255), tracking_number VARCHAR(255), items JSONB, admin_notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
       await pgPool.query(`CREATE TABLE IF NOT EXISTS categories (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255), slug VARCHAR(255), description TEXT, image TEXT, icon VARCHAR(100), display_order INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
       await pgPool.query(`CREATE TABLE IF NOT EXISTS banners (id VARCHAR(255) PRIMARY KEY, title VARCHAR(255), subtitle TEXT, image_url TEXT, cta_text VARCHAR(100), cta_link VARCHAR(255), display_order INT, is_active BOOLEAN, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-      await pgPool.query(`CREATE TABLE IF NOT EXISTS site_settings (id INT PRIMARY KEY DEFAULT 1, store_name VARCHAR(255), tagline TEXT, email VARCHAR(255), phone VARCHAR(100), address TEXT, currency VARCHAR(10), logo TEXT, meta_title TEXT, meta_description TEXT, meta_keywords TEXT)`);
-      await pgPool.query(`CREATE TABLE IF NOT EXISTS shipping_settings (id INT PRIMARY KEY DEFAULT 1, flat_shipping_rate NUMERIC(10,2), free_shipping_threshold NUMERIC(10,2), express_delivery_rate NUMERIC(10,2))`);
-      await pgPool.query(`CREATE TABLE IF NOT EXISTS tax_settings (id INT PRIMARY KEY DEFAULT 1, tax_rate_percentage NUMERIC(5,2))`);
-      await pgPool.query(`CREATE TABLE IF NOT EXISTS payment_settings (id INT PRIMARY KEY DEFAULT 1, qr_code_enabled BOOLEAN, upi_id VARCHAR(255), account_holder VARCHAR(255), qr_image_url TEXT, qr_instructions TEXT, bank_transfer_enabled BOOLEAN, bank_name VARCHAR(255), account_number VARCHAR(255), ifsc_code VARCHAR(255), branch VARCHAR(255), bank_instructions TEXT, cod_enabled BOOLEAN)`);
 
-      const existingUsers = await pgPool.query(`SELECT COUNT(*) as count FROM users`);
-      if (parseInt(existingUsers.rows[0]?.count || 0, 10) === 0) {
-        for (const u of defaultUsers) {
-          await pgPool.query(`INSERT INTO users (id, name, username, password, role) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`, [u.id, u.name, u.username, u.password, u.role]);
-        }
+      for (const u of defaultUsers) {
+        await pgPool.query(`INSERT INTO users (id, name, username, password, role) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`, [u.id, u.name, u.username, u.password, u.role]);
+      }
+
+      for (const p of defaultProducts) {
+        await pgPool.query(
+          `INSERT INTO products (id, name, slug, category_id, price, original_price, stock, rating, reviews_count, description, image, is_customizable, is_frame, frame_material, display_order)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+           ON CONFLICT (id) DO UPDATE SET
+             name = EXCLUDED.name,
+             price = EXCLUDED.price,
+             original_price = EXCLUDED.original_price,
+             category_id = EXCLUDED.category_id,
+             image = EXCLUDED.image,
+             description = EXCLUDED.description`,
+          [p.id, p.name, p.slug, p.category_id, p.price, p.original_price, p.stock, p.rating || 5.0, p.reviews_count || 0, p.description, p.image, p.is_customizable, p.is_frame, p.frame_material, p.display_order]
+        );
       }
     } catch (err) {
       console.warn("Init DB notice:", err.message);
     }
   }
+
+  if (sqliteDb) {
+    sqliteDb.serialize(() => {
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, name TEXT, slug TEXT, category_id TEXT, price REAL, original_price REAL, stock INTEGER, rating REAL, reviews_count INTEGER, description TEXT, image TEXT, is_customizable INTEGER, is_frame INTEGER, frame_material TEXT, display_order INTEGER, created_at TEXT)`);
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, name TEXT, username TEXT UNIQUE, password TEXT, role TEXT, created_at TEXT)`);
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT, slug TEXT, description TEXT, image TEXT, icon TEXT, display_order INTEGER, created_at TEXT)`);
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS banners (id TEXT PRIMARY KEY, title TEXT, subtitle TEXT, image_url TEXT, cta_text TEXT, cta_link TEXT, display_order INTEGER, is_active INTEGER, created_at TEXT)`);
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, order_number TEXT, user_id TEXT, username TEXT, customer_name TEXT, customer_email TEXT, customer_phone TEXT, shipping_address TEXT, total_amount REAL, discount_amount REAL, shipping_fee REAL, tax_amount REAL, payment_method TEXT, utr_number TEXT, payment_screenshot TEXT, payment_status TEXT, payment_approval_status TEXT, order_status TEXT, tracking_number TEXT, items TEXT, admin_notes TEXT, created_at TEXT)`);
+
+      for (const p of defaultProducts) {
+        sqliteDb.run(
+          `INSERT OR REPLACE INTO products (id, name, slug, category_id, price, original_price, stock, rating, reviews_count, description, image, is_customizable, is_frame, frame_material, display_order, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+          [p.id, p.name, p.slug, p.category_id, p.price, p.original_price, p.stock, p.rating || 5.0, p.reviews_count || 0, p.description, p.image, p.is_customizable ? 1 : 0, p.is_frame ? 1 : 0, p.frame_material, p.display_order]
+        );
+      }
+
+      for (const u of defaultUsers) {
+        sqliteDb.run(
+          `INSERT OR IGNORE INTO users (id, name, username, password, role, created_at) VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+          [u.id, u.name, u.username, u.password, u.role]
+        );
+      }
+    });
+  }
 }
+
+// Auto-run initDb
+initDb().catch(() => {});
