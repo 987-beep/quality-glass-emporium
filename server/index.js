@@ -1032,7 +1032,10 @@ app.get('/api/admin/main-page', authMiddleware, adminOnlyMiddleware, async (req,
 
 app.put('/api/admin/main-page', authMiddleware, adminOnlyMiddleware, async (req, res) => {
   try {
-    const { hero, promo, announcementBar, sectionHeadlines, features } = req.body;
+    const { hero, promo, announcementBar, sectionHeadlines, features } = req.body || {};
+
+    await query(`INSERT INTO site_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`).catch(() => {});
+    await query(`INSERT OR IGNORE INTO site_settings (id) VALUES (1)`).catch(() => {});
 
     await query(
       `UPDATE site_settings SET hero_config = ?, promo_config = ?, announcement_bar = ?, section_headlines = ?, features = ? WHERE id = 1`,
@@ -1068,7 +1071,7 @@ app.post('/api/admin/banners', authMiddleware, adminOnlyMiddleware, async (req, 
 
     const id = `banner-${Date.now()}`;
     await query(
-      `INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, is_active) VALUES (?, ?, ?, ?, ?, ?, true)`,
+      `INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)`,
       [id, title, subtitle || '', imageUrl, ctaText || 'Shop Now', ctaLink || '/collection']
     );
 
@@ -1094,23 +1097,23 @@ app.get('/api/admin/payment-config', authMiddleware, adminOnlyMiddleware, async 
     const p = rows[0] || {};
     res.json({
       qrCode: {
-        enabled: Boolean(p.qr_code_enabled),
-        upiId: p.upi_id,
-        accountHolder: p.account_holder,
-        qrImageUrl: p.qr_image_url,
-        instructions: p.qr_instructions
+        enabled: p.qr_code_enabled !== undefined ? Boolean(p.qr_code_enabled) : true,
+        upiId: p.upi_id || 'qualityglass@upi',
+        accountHolder: p.account_holder || 'Quality Glass Emporium',
+        qrImageUrl: p.qr_image_url || 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium',
+        instructions: p.qr_instructions || ''
       },
       bankTransfer: {
-        enabled: Boolean(p.bank_transfer_enabled),
-        accountHolder: p.account_holder,
-        bankName: p.bank_name,
-        accountNumber: p.account_number,
-        ifscCode: p.ifsc_code,
-        branch: p.branch,
-        instructions: p.bank_instructions
+        enabled: p.bank_transfer_enabled !== undefined ? Boolean(p.bank_transfer_enabled) : true,
+        accountHolder: p.account_holder || 'Quality Glass Emporium',
+        bankName: p.bank_name || 'State Bank of India',
+        accountNumber: p.account_number || '389201004921',
+        ifscCode: p.ifsc_code || 'SBIN0000465',
+        branch: p.branch || 'Raebareli Main Branch',
+        instructions: p.bank_instructions || ''
       },
       cod: {
-        enabled: Boolean(p.cod_enabled)
+        enabled: p.cod_enabled !== undefined ? Boolean(p.cod_enabled) : true
       }
     });
   } catch (err) {
@@ -1122,6 +1125,9 @@ app.put('/api/admin/payment-config', authMiddleware, adminOnlyMiddleware, async 
   try {
     const { qrCode, bankTransfer, cod } = req.body || {};
 
+    await query(`INSERT INTO payment_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`).catch(() => {});
+    await query(`INSERT OR IGNORE INTO payment_settings (id) VALUES (1)`).catch(() => {});
+
     await query(
       `UPDATE payment_settings SET
         qr_code_enabled = ?, upi_id = ?, account_holder = ?, qr_image_url = ?, qr_instructions = ?,
@@ -1129,13 +1135,44 @@ app.put('/api/admin/payment-config', authMiddleware, adminOnlyMiddleware, async 
         cod_enabled = ?
        WHERE id = 1`,
       [
-        Boolean(qrCode?.enabled), qrCode?.upiId || '', qrCode?.accountHolder || '', qrCode?.qrImageUrl || '', qrCode?.instructions || '',
-        Boolean(bankTransfer?.enabled), bankTransfer?.bankName || '', bankTransfer?.accountNumber || '', bankTransfer?.ifscCode || '', bankTransfer?.branch || '', bankTransfer?.instructions || '',
-        Boolean(cod?.enabled)
+        qrCode?.enabled ? 1 : 0,
+        qrCode?.upiId || '',
+        qrCode?.accountHolder || '',
+        qrCode?.qrImageUrl || '',
+        qrCode?.instructions || '',
+        bankTransfer?.enabled ? 1 : 0,
+        bankTransfer?.bankName || '',
+        bankTransfer?.accountNumber || '',
+        bankTransfer?.ifscCode || '',
+        bankTransfer?.branch || '',
+        bankTransfer?.instructions || '',
+        cod?.enabled ? 1 : 0
       ]
     );
 
-    res.json(req.body);
+    const rows = await query(`SELECT * FROM payment_settings WHERE id = 1`);
+    const p = rows[0] || {};
+    res.json({
+      qrCode: {
+        enabled: p.qr_code_enabled !== undefined ? Boolean(p.qr_code_enabled) : true,
+        upiId: p.upi_id || '',
+        accountHolder: p.account_holder || '',
+        qrImageUrl: p.qr_image_url || '',
+        instructions: p.qr_instructions || ''
+      },
+      bankTransfer: {
+        enabled: p.bank_transfer_enabled !== undefined ? Boolean(p.bank_transfer_enabled) : true,
+        accountHolder: p.account_holder || '',
+        bankName: p.bank_name || '',
+        accountNumber: p.account_number || '',
+        ifscCode: p.ifsc_code || '',
+        branch: p.branch || '',
+        instructions: p.bank_instructions || ''
+      },
+      cod: {
+        enabled: p.cod_enabled !== undefined ? Boolean(p.cod_enabled) : true
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1177,7 +1214,14 @@ app.put('/api/admin/settings', authMiddleware, adminOnlyMiddleware, async (req, 
       storeName, tagline, email, phone, address, logo,
       metaTitle, metaDescription, metaKeywords,
       flatShippingRate, freeShippingThreshold, taxRatePercentage
-    } = req.body;
+    } = req.body || {};
+
+    await query(`INSERT INTO site_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`).catch(() => {});
+    await query(`INSERT OR IGNORE INTO site_settings (id) VALUES (1)`).catch(() => {});
+    await query(`INSERT INTO shipping_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`).catch(() => {});
+    await query(`INSERT OR IGNORE INTO shipping_settings (id) VALUES (1)`).catch(() => {});
+    await query(`INSERT INTO tax_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`).catch(() => {});
+    await query(`INSERT OR IGNORE INTO tax_settings (id) VALUES (1)`).catch(() => {});
 
     if (storeName || tagline || email || phone || address || logo || metaTitle || metaDescription || metaKeywords) {
       await query(
@@ -1192,7 +1236,7 @@ app.put('/api/admin/settings', authMiddleware, adminOnlyMiddleware, async (req, 
           meta_description = COALESCE(?, meta_description),
           meta_keywords = COALESCE(?, meta_keywords)
          WHERE id = 1`,
-        [storeName, tagline, email, phone, address, logo, metaTitle, metaDescription, metaKeywords]
+        [storeName || null, tagline || null, email || null, phone || null, address || null, logo || null, metaTitle || null, metaDescription || null, metaKeywords || null]
       );
     }
 

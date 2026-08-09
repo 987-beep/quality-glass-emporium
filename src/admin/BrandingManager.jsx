@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../api';
+import { FileUploadInput } from '../components/FileUploadInput';
 
 export function BrandingManager({ token }) {
   const [storeName, setStoreName] = useState('');
@@ -135,15 +136,13 @@ export function BrandingManager({ token }) {
           />
         </div>
 
-        <div>
-          <label className="block text-on-surface font-semibold mb-1">Store Logo Image URL</label>
-          <input
-            type="text"
-            value={logo}
-            onChange={(e) => setLogo(e.target.value)}
-            className="w-full bg-surface-container-high border border-outline-variant text-on-surface p-2.5 rounded focus:outline-none focus:border-primary"
-          />
-        </div>
+        <FileUploadInput
+          label="Store Logo Image *"
+          value={logo}
+          token={token}
+          onChange={(url) => setLogo(url)}
+          aspectHint="Upload store logo image (80 KB to 1.5 MB)"
+        />
 
         <button
           type="submit"

@@ -3,6 +3,7 @@ import { apiFetch, getAssetUrl, saveLocalProduct, removeLocalProduct, syncProduc
 import { FileUploadInput } from '../components/FileUploadInput';
 
 const DEFAULT_STORE_COLLECTIONS = [
+  { id: "photo-frames", name: "Photo Frames" },
   { id: "anime", name: "Anime" },
   { id: "religious", name: "Religious" },
   { id: "manwha", name: "Manwha" },

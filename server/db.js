@@ -84,11 +84,12 @@ export const defaultUsers = [
 ];
 
 const defaultCategories = [
-  { id: "anime", name: "Anime", slug: "anime", description: "Vibrant Anime Wall Posters, Glass Art & Acrylic Displays", image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80", icon: "smart_toy", display_order: 1 },
-  { id: "religious", name: "Religious", slug: "religious", description: "Sacred Devotional Photo Frames, Glass Icons & Wall Shrine Prints", image: "https://images.unsplash.com/photo-1609137144813-7d9921338f24?auto=format&fit=crop&w=600&q=80", icon: "temple_hindu", display_order: 2 },
-  { id: "manwha", name: "Manwha", slug: "manwha", description: "Korean Webtoon & Manwha Character Art & Glass Prints", image: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=600&q=80", icon: "auto_stories", display_order: 3 },
-  { id: "gifts", name: "Gifts", slug: "gifts", description: "Customized Photo Lamps, Mugs, Keychains & Personal Keepsakes", image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=600&q=80", icon: "redeem", display_order: 4 },
-  { id: "acrylic-frames", name: "Acrylic Frames", slug: "acrylic-frames", description: "Luminous Frameless Acrylic Blocks & Custom Cut Sheets", image: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80", icon: "aspect_ratio", display_order: 5 }
+  { id: "photo-frames", name: "Photo Frames", slug: "photo-frames", description: "Bespoke Walnut & Hardwood Custom Photo Frames", image: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80", icon: "filter", display_order: 1 },
+  { id: "anime", name: "Anime", slug: "anime", description: "Vibrant Anime Wall Posters, Glass Art & Acrylic Displays", image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80", icon: "smart_toy", display_order: 2 },
+  { id: "religious", name: "Religious", slug: "religious", description: "Sacred Devotional Photo Frames, Glass Icons & Wall Shrine Prints", image: "https://images.unsplash.com/photo-1609137144813-7d9921338f24?auto=format&fit=crop&w=600&q=80", icon: "temple_hindu", display_order: 3 },
+  { id: "manwha", name: "Manwha", slug: "manwha", description: "Korean Webtoon & Manwha Character Art & Glass Prints", image: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=600&q=80", icon: "auto_stories", display_order: 4 },
+  { id: "gifts", name: "Gifts", slug: "gifts", description: "Customized Photo Lamps, Mugs, Keychains & Personal Keepsakes", image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=600&q=80", icon: "redeem", display_order: 5 },
+  { id: "acrylic-frames", name: "Acrylic Frames", slug: "acrylic-frames", description: "Luminous Frameless Acrylic Blocks & Custom Cut Sheets", image: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80", icon: "aspect_ratio", display_order: 6 }
 ];
 
 // Clean Base Store Seed - Dynamic products are added via Admin Panel
@@ -169,16 +170,72 @@ const defaultBanners = [
   }
 ];
 
+// Banners JSON persistence helper
+const bannersJsonPath = path.join(__dirname, 'banners_store.json');
+function loadDynamicBanners() {
+  try {
+    if (fs.existsSync(bannersJsonPath)) {
+      const raw = fs.readFileSync(bannersJsonPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [...defaultBanners];
+}
+function saveDynamicBanners(banners) {
+  try {
+    fs.writeFileSync(bannersJsonPath, JSON.stringify(banners, null, 2), 'utf8');
+  } catch {}
+}
+
+// Categories JSON persistence helper
+const categoriesJsonPath = path.join(__dirname, 'categories_store.json');
+function loadDynamicCategories() {
+  try {
+    if (fs.existsSync(categoriesJsonPath)) {
+      const raw = fs.readFileSync(categoriesJsonPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [...defaultCategories];
+}
+function saveDynamicCategories(cats) {
+  try {
+    fs.writeFileSync(categoriesJsonPath, JSON.stringify(cats, null, 2), 'utf8');
+  } catch {}
+}
+
+// Settings JSON persistence helper
+const settingsJsonPath = path.join(__dirname, 'settings_store.json');
+function loadDynamicSettings() {
+  try {
+    if (fs.existsSync(settingsJsonPath)) {
+      const raw = fs.readFileSync(settingsJsonPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch {}
+  return null;
+}
+function saveDynamicSettings(settingsObj) {
+  try {
+    fs.writeFileSync(settingsJsonPath, JSON.stringify(settingsObj, null, 2), 'utf8');
+  } catch {}
+}
+
+const loadedSettings = loadDynamicSettings();
+
 // Memory Data Store for High-Performance Fallback
 const memoryStore = {
   products: [...defaultProducts, ...dynamicAdminProducts],
-  categories: [...defaultCategories],
-  banners: [...defaultBanners],
+  categories: loadDynamicCategories(),
+  banners: loadDynamicBanners(),
   users: [...defaultUsers, ...dynamicRegisteredUsers],
   orders: [],
   coupons: [],
   reviews: [],
-  settings: [{
+  siteSettings: loadedSettings?.siteSettings || {
     id: 1,
     store_name: 'Quality Glass Emporium',
     tagline: 'Bespoke Framing, Photo Studio & Customized Gifts',
@@ -190,22 +247,51 @@ const memoryStore = {
     meta_title: 'Quality Glass Emporium | Custom Frames, Passport Studio & Gifts',
     meta_description: 'Bespoke photo frames, acrylic sheets, canvas prints, passport photos, photo lamps, custom mugs & gifts in Raebareli.',
     meta_keywords: 'photo frames, acrylic frames, canvas prints, passport photos, photo studio, custom gifts, photo lamps, mugs, keychains, Raebareli',
-    flat_shipping_rate: 79,
-    free_shipping_threshold: 999,
-    tax_rate_percentage: 18,
+    hero_config: '{}',
+    promo_config: '{}',
+    announcement_bar: '{}',
+    section_headlines: '{}',
+    features: '[]'
+  },
+  paymentSettings: loadedSettings?.paymentSettings || {
+    id: 1,
     qr_code_enabled: 1,
     upi_id: 'qualityglass@upi',
     account_holder: 'Quality Glass Emporium',
     qr_image_url: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium',
-    qr_instructions: 'Scan QR code using PhonePe, GPay, Paytm or BHIM. Enter your 12-digit UTR number.',
+    qr_instructions: 'Scan QR code using GPay, PhonePe, Paytm, or BHIM. Enter your 12-digit UTR reference number and upload the payment screenshot.',
     bank_transfer_enabled: 1,
     bank_name: 'State Bank of India',
     account_number: '389201004921',
     ifsc_code: 'SBIN0000465',
     branch: 'Raebareli Main Branch',
+    bank_instructions: 'Transfer total order amount via IMPS / NEFT / RTGS to store bank account. Enter 12-digit Bank UTR reference number and upload screenshot.',
     cod_enabled: 1
-  }]
+  },
+  shippingSettings: loadedSettings?.shippingSettings || {
+    id: 1,
+    free_shipping_threshold: 999,
+    flat_shipping_rate: 79,
+    express_delivery_rate: 149,
+    enable_local_pickup: 1,
+    estimated_delivery_days: '2-4 Business Days'
+  },
+  taxSettings: loadedSettings?.taxSettings || {
+    id: 1,
+    tax_rate_percentage: 18,
+    include_tax_in_price: 1,
+    gstin_number: '09AAAFQ1234A1Z5'
+  }
 };
+
+function persistAllSettings() {
+  saveDynamicSettings({
+    siteSettings: memoryStore.siteSettings,
+    paymentSettings: memoryStore.paymentSettings,
+    shippingSettings: memoryStore.shippingSettings,
+    taxSettings: memoryStore.taxSettings
+  });
+}
 
 // Universal Async Query Runner
 export async function query(sqlText, params = []) {
@@ -218,17 +304,25 @@ export async function query(sqlText, params = []) {
     const res = await pgPool.query(pgSql, params);
     return res.rows;
   } else if (sqliteDb) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const trimmed = sqlText.trim().toUpperCase();
       if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) {
         sqliteDb.all(sqlText, params, (err, rows) => {
-          if (err) resolve([]);
-          else resolve(rows || []);
+          if (err) {
+            console.error("SQLite select error:", err.message, sqlText);
+            resolve([]);
+          } else {
+            resolve(rows || []);
+          }
         });
       } else {
         sqliteDb.run(sqlText, params, function (err) {
-          if (err) resolve([{ id: 1, changes: 1 }]);
-          else resolve([{ id: this.lastID, changes: this.changes }]);
+          if (err) {
+            console.error("SQLite run error:", err.message, sqlText);
+            resolve([{ id: 1, changes: 0 }]);
+          } else {
+            resolve([{ id: this.lastID, changes: this.changes }]);
+          }
         });
       }
     });
@@ -239,7 +333,6 @@ export async function query(sqlText, params = []) {
     if (sqlUpper.startsWith('SELECT')) {
       if (sqlUpper.includes('FROM PRODUCTS')) {
         let list = [...memoryStore.products];
-        // If category filter is present in params
         if (params.length > 0 && typeof params[0] === 'string' && params[0] !== 'all') {
           const cat = params[0].toLowerCase();
           list = list.filter(p => (p.category_id && p.category_id.toLowerCase() === cat) || (p.slug && p.slug.toLowerCase() === cat));
@@ -247,7 +340,18 @@ export async function query(sqlText, params = []) {
         return list;
       }
       if (sqlUpper.includes('FROM CATEGORIES')) return memoryStore.categories;
-      if (sqlUpper.includes('FROM BANNERS')) return memoryStore.banners;
+      if (sqlUpper.includes('FROM BANNERS')) {
+        return memoryStore.banners.map(b => ({
+          id: b.id,
+          title: b.title,
+          subtitle: b.subtitle,
+          imageUrl: b.image_url || b.imageUrl,
+          ctaText: b.cta_text || b.ctaText,
+          ctaLink: b.cta_link || b.ctaLink,
+          displayOrder: b.display_order || b.displayOrder || 1,
+          isActive: b.is_active !== undefined ? Boolean(b.is_active) : true
+        }));
+      }
       if (sqlUpper.includes('FROM USERS')) {
         if (params.length > 0 && typeof params[0] === 'string') {
           const target = params[0].trim().toLowerCase().replace(/^@/, '');
@@ -258,8 +362,102 @@ export async function query(sqlText, params = []) {
       if (sqlUpper.includes('FROM ORDERS')) return memoryStore.orders;
       if (sqlUpper.includes('FROM REVIEWS')) return memoryStore.reviews;
       if (sqlUpper.includes('FROM COUPONS')) return memoryStore.coupons;
-      if (sqlUpper.includes('FROM SITE_SETTINGS') || sqlUpper.includes('FROM SHIPPING_SETTINGS') || sqlUpper.includes('FROM TAX_SETTINGS') || sqlUpper.includes('FROM PAYMENT_SETTINGS') || sqlUpper.includes('FROM SETTINGS')) return memoryStore.settings;
+      if (sqlUpper.includes('FROM PAYMENT_SETTINGS')) return [memoryStore.paymentSettings];
+      if (sqlUpper.includes('FROM SITE_SETTINGS')) return [memoryStore.siteSettings];
+      if (sqlUpper.includes('FROM SHIPPING_SETTINGS')) return [memoryStore.shippingSettings];
+      if (sqlUpper.includes('FROM TAX_SETTINGS')) return [memoryStore.taxSettings];
       return [{ count: 1, total: 0 }];
+    } else if (sqlUpper.startsWith('UPDATE PAYMENT_SETTINGS')) {
+      const [qrEnabled, upiId, accountHolder, qrImageUrl, qrInstructions, bankEnabled, bankName, accountNumber, ifscCode, branch, bankInstructions, codEnabled] = params;
+      memoryStore.paymentSettings = {
+        ...memoryStore.paymentSettings,
+        qr_code_enabled: qrEnabled ? 1 : 0,
+        upi_id: upiId !== undefined ? upiId : memoryStore.paymentSettings.upi_id,
+        account_holder: accountHolder !== undefined ? accountHolder : memoryStore.paymentSettings.account_holder,
+        qr_image_url: qrImageUrl !== undefined ? qrImageUrl : memoryStore.paymentSettings.qr_image_url,
+        qr_instructions: qrInstructions !== undefined ? qrInstructions : memoryStore.paymentSettings.qr_instructions,
+        bank_transfer_enabled: bankEnabled ? 1 : 0,
+        bank_name: bankName !== undefined ? bankName : memoryStore.paymentSettings.bank_name,
+        account_number: accountNumber !== undefined ? accountNumber : memoryStore.paymentSettings.account_number,
+        ifsc_code: ifscCode !== undefined ? ifscCode : memoryStore.paymentSettings.ifsc_code,
+        branch: branch !== undefined ? branch : memoryStore.paymentSettings.branch,
+        bank_instructions: bankInstructions !== undefined ? bankInstructions : memoryStore.paymentSettings.bank_instructions,
+        cod_enabled: codEnabled ? 1 : 0
+      };
+      persistAllSettings();
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('UPDATE SITE_SETTINGS')) {
+      if (sqlUpper.includes('HERO_CONFIG')) {
+        const [hero, promo, ann, sec, feat] = params;
+        memoryStore.siteSettings = {
+          ...memoryStore.siteSettings,
+          hero_config: hero,
+          promo_config: promo,
+          announcement_bar: ann,
+          section_headlines: sec,
+          features: feat
+        };
+      } else {
+        const [sName, tag, eml, ph, addr, lg, mTitle, mDesc, mKey] = params;
+        memoryStore.siteSettings = {
+          ...memoryStore.siteSettings,
+          store_name: sName || memoryStore.siteSettings.store_name,
+          tagline: tag || memoryStore.siteSettings.tagline,
+          email: eml || memoryStore.siteSettings.email,
+          phone: ph || memoryStore.siteSettings.phone,
+          address: addr || memoryStore.siteSettings.address,
+          logo: lg || memoryStore.siteSettings.logo,
+          meta_title: mTitle || memoryStore.siteSettings.meta_title,
+          meta_description: mDesc || memoryStore.siteSettings.meta_description,
+          meta_keywords: mKey || memoryStore.siteSettings.meta_keywords
+        };
+      }
+      persistAllSettings();
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('UPDATE SHIPPING_SETTINGS')) {
+      const [rate, thresh] = params;
+      if (rate !== null && rate !== undefined) memoryStore.shippingSettings.flat_shipping_rate = rate;
+      if (thresh !== null && thresh !== undefined) memoryStore.shippingSettings.free_shipping_threshold = thresh;
+      persistAllSettings();
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('UPDATE TAX_SETTINGS')) {
+      const [rate] = params;
+      if (rate !== null && rate !== undefined) memoryStore.taxSettings.tax_rate_percentage = rate;
+      persistAllSettings();
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('INSERT INTO BANNERS')) {
+      const [bId, title, subtitle, imageUrl, ctaText, ctaLink] = params;
+      const newBanner = { id: bId, title, subtitle, image_url: imageUrl, cta_text: ctaText, cta_link: ctaLink, display_order: memoryStore.banners.length + 1, is_active: true };
+      memoryStore.banners.push(newBanner);
+      saveDynamicBanners(memoryStore.banners);
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('DELETE FROM BANNERS')) {
+      const bannerId = params[0];
+      memoryStore.banners = memoryStore.banners.filter(b => b.id !== bannerId);
+      saveDynamicBanners(memoryStore.banners);
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('INSERT INTO CATEGORIES')) {
+      const [cId, name, slug, description, image, icon] = params;
+      const newCat = { id: cId, name, slug, description, image, icon: icon || 'category', display_order: memoryStore.categories.length + 1 };
+      memoryStore.categories.push(newCat);
+      saveDynamicCategories(memoryStore.categories);
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('UPDATE CATEGORIES')) {
+      const catId = params[params.length - 1];
+      const found = memoryStore.categories.find(c => c.id === catId);
+      if (found && params.length >= 4) {
+        found.name = params[0];
+        found.description = params[1];
+        found.image = params[2];
+        found.icon = params[3];
+        saveDynamicCategories(memoryStore.categories);
+      }
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('DELETE FROM CATEGORIES')) {
+      const catId = params[0];
+      memoryStore.categories = memoryStore.categories.filter(c => c.id !== catId);
+      saveDynamicCategories(memoryStore.categories);
+      return [{ id: 1, changes: 1 }];
     } else if (sqlUpper.startsWith('INSERT INTO ORDERS')) {
       const [orderId, orderNumber, userId, username, customerName, customerEmail, customerPhone, shippingAddress, totalAmount, discountAmount, shippingFee, taxAmount, paymentMethod, utrNumber, paymentScreenshot, paymentStatus, paymentApprovalStatus, orderStatus, trackingNumber, itemsJson] = params;
       const newOrder = {
@@ -311,6 +509,29 @@ export async function query(sqlText, params = []) {
       dynamicAdminProducts.unshift(newProd);
       saveDynamicProducts(dynamicAdminProducts);
       return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('UPDATE PRODUCTS')) {
+      const prodId = params[params.length - 1];
+      const found = memoryStore.products.find(p => p.id === prodId);
+      if (found && params.length >= 11) {
+        found.name = params[0];
+        found.slug = params[1];
+        found.category_id = params[2];
+        found.price = params[3];
+        found.original_price = params[4];
+        found.stock = params[5];
+        found.description = params[6];
+        found.image = params[7];
+        found.is_customizable = params[8];
+        found.is_frame = params[9];
+        found.frame_material = params[10];
+
+        const dynFound = dynamicAdminProducts.find(p => p.id === prodId);
+        if (dynFound) {
+          Object.assign(dynFound, found);
+          saveDynamicProducts(dynamicAdminProducts);
+        }
+      }
+      return [{ id: 1, changes: 1 }];
     } else if (sqlUpper.startsWith('INSERT INTO USERS')) {
       const [newId, name, username, password, role] = params;
       const newUser = { id: newId, name, username, password, role: role || 'customer', created_at: new Date().toISOString() };
@@ -354,6 +575,18 @@ export async function initDb() {
       await pgPool.query(`CREATE TABLE IF NOT EXISTS orders (id VARCHAR(255) PRIMARY KEY, order_number VARCHAR(255), user_id VARCHAR(255), username VARCHAR(255), customer_name VARCHAR(255), customer_email VARCHAR(255), customer_phone VARCHAR(255), shipping_address TEXT, total_amount NUMERIC(10,2), discount_amount NUMERIC(10,2), shipping_fee NUMERIC(10,2), tax_amount NUMERIC(10,2), payment_method VARCHAR(255), utr_number VARCHAR(255), payment_screenshot TEXT, payment_status VARCHAR(255), payment_approval_status VARCHAR(255), order_status VARCHAR(255), tracking_number VARCHAR(255), items JSONB, admin_notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
       await pgPool.query(`CREATE TABLE IF NOT EXISTS categories (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255), slug VARCHAR(255), description TEXT, image TEXT, icon VARCHAR(100), display_order INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
       await pgPool.query(`CREATE TABLE IF NOT EXISTS banners (id VARCHAR(255) PRIMARY KEY, title VARCHAR(255), subtitle TEXT, image_url TEXT, cta_text VARCHAR(100), cta_link VARCHAR(255), display_order INT, is_active BOOLEAN, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS site_settings (id INT PRIMARY KEY DEFAULT 1, store_name TEXT, tagline TEXT, email TEXT, phone TEXT, address TEXT, currency TEXT, logo TEXT, meta_title TEXT, meta_description TEXT, meta_keywords TEXT, hero_config TEXT, promo_config TEXT, announcement_bar TEXT, section_headlines TEXT, features TEXT)`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS shipping_settings (id INT PRIMARY KEY DEFAULT 1, free_shipping_threshold NUMERIC(10,2), flat_shipping_rate NUMERIC(10,2), express_delivery_rate NUMERIC(10,2), enable_local_pickup BOOLEAN, estimated_delivery_days VARCHAR(100))`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS tax_settings (id INT PRIMARY KEY DEFAULT 1, tax_rate_percentage NUMERIC(5,2), include_tax_in_price BOOLEAN, gstin_number VARCHAR(100))`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS payment_settings (id INT PRIMARY KEY DEFAULT 1, qr_code_enabled INT, upi_id VARCHAR(255), account_holder VARCHAR(255), qr_image_url TEXT, qr_instructions TEXT, bank_transfer_enabled INT, bank_name VARCHAR(255), account_number VARCHAR(255), ifsc_code VARCHAR(100), branch VARCHAR(255), bank_instructions TEXT, cod_enabled INT)`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS coupons (id VARCHAR(255) PRIMARY KEY, code VARCHAR(100) UNIQUE, discount_type VARCHAR(50), discount_value NUMERIC(10,2), min_spend NUMERIC(10,2), expiry_date VARCHAR(100), usage_count INT DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS reviews (id VARCHAR(255) PRIMARY KEY, product_id VARCHAR(255), customer_name VARCHAR(255), rating INT, comment TEXT, is_approved BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+
+      // Seed settings row id=1
+      await pgPool.query(`INSERT INTO site_settings (id, store_name, tagline, email, phone, address, currency, logo, meta_title, meta_description, meta_keywords) VALUES (1, 'Quality Glass Emporium', 'Bespoke Framing, Photo Studio & Customized Gifts', 'contact@qualityglassemporium.com', '+91 94150 12345', 'Belliganj Malik Mau Road, Near Hotel Ganesh, PNT Colony, Raebareli-229001, Uttar Pradesh', '₹', 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=400&q=80', 'Quality Glass Emporium | Custom Frames, Passport Studio & Gifts', 'Bespoke photo frames, acrylic sheets, canvas prints, passport photos, photo lamps, custom mugs & gifts in Raebareli.', 'photo frames, acrylic frames, canvas prints, passport photos, photo studio, custom gifts, photo lamps, mugs, keychains, Raebareli') ON CONFLICT DO NOTHING`);
+      await pgPool.query(`INSERT INTO shipping_settings (id, free_shipping_threshold, flat_shipping_rate, express_delivery_rate) VALUES (1, 999.00, 79.00, 149.00) ON CONFLICT DO NOTHING`);
+      await pgPool.query(`INSERT INTO tax_settings (id, tax_rate_percentage) VALUES (1, 18.00) ON CONFLICT DO NOTHING`);
+      await pgPool.query(`INSERT INTO payment_settings (id, qr_code_enabled, upi_id, account_holder, qr_image_url, qr_instructions, bank_transfer_enabled, bank_name, account_number, ifsc_code, branch, bank_instructions, cod_enabled) VALUES (1, 1, 'qualityglass@upi', 'Quality Glass Emporium', 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium', 'Scan QR code using GPay, PhonePe, Paytm, or BHIM. Enter your 12-digit UTR reference number and upload payment screenshot.', 1, 'State Bank of India', '389201004921', 'SBIN0000465', 'Raebareli Main Branch', 'Transfer total order amount via IMPS / NEFT / RTGS to store bank account.', 1) ON CONFLICT DO NOTHING`);
 
       for (const u of defaultUsers) {
         await pgPool.query(`INSERT INTO users (id, name, username, password, role) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`, [u.id, u.name, u.username, u.password, u.role]);
@@ -367,8 +600,26 @@ export async function initDb() {
           [p.id, p.name, p.slug, p.category_id, p.price, p.original_price, p.stock, p.rating || 5.0, p.reviews_count || 0, p.description, p.image, p.is_customizable, p.is_frame, p.frame_material, p.display_order]
         );
       }
+
+      for (const c of defaultCategories) {
+        await pgPool.query(
+          `INSERT INTO categories (id, name, slug, description, image, icon, display_order)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT DO NOTHING`,
+          [c.id, c.name, c.slug, c.description, c.image, c.icon, c.display_order]
+        );
+      }
+
+      for (const b of defaultBanners) {
+        await pgPool.query(
+          `INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, display_order, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT DO NOTHING`,
+          [b.id, b.title, b.subtitle, b.image_url, b.cta_text, b.cta_link, b.display_order, b.is_active]
+        );
+      }
     } catch (err) {
-      console.warn("Init DB notice:", err.message);
+      console.warn("Init DB Postgres notice:", err.message);
     }
   }
 
@@ -379,6 +630,18 @@ export async function initDb() {
       sqliteDb.run(`CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT, slug TEXT, description TEXT, image TEXT, icon TEXT, display_order INTEGER, created_at TEXT)`);
       sqliteDb.run(`CREATE TABLE IF NOT EXISTS banners (id TEXT PRIMARY KEY, title TEXT, subtitle TEXT, image_url TEXT, cta_text TEXT, cta_link TEXT, display_order INTEGER, is_active INTEGER, created_at TEXT)`);
       sqliteDb.run(`CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, order_number TEXT, user_id TEXT, username TEXT, customer_name TEXT, customer_email TEXT, customer_phone TEXT, shipping_address TEXT, total_amount REAL, discount_amount REAL, shipping_fee REAL, tax_amount REAL, payment_method TEXT, utr_number TEXT, payment_screenshot TEXT, payment_status TEXT, payment_approval_status TEXT, order_status TEXT, tracking_number TEXT, items TEXT, admin_notes TEXT, created_at TEXT)`);
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS site_settings (id INTEGER PRIMARY KEY DEFAULT 1, store_name TEXT, tagline TEXT, email TEXT, phone TEXT, address TEXT, currency TEXT, logo TEXT, meta_title TEXT, meta_description TEXT, meta_keywords TEXT, hero_config TEXT, promo_config TEXT, announcement_bar TEXT, section_headlines TEXT, features TEXT)`);
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS shipping_settings (id INTEGER PRIMARY KEY DEFAULT 1, free_shipping_threshold REAL DEFAULT 999.00, flat_shipping_rate REAL DEFAULT 79.00, express_delivery_rate REAL DEFAULT 149.00, enable_local_pickup INTEGER DEFAULT 1, estimated_delivery_days TEXT DEFAULT '2-4 Business Days')`);
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS tax_settings (id INTEGER PRIMARY KEY DEFAULT 1, tax_rate_percentage REAL DEFAULT 18.00, include_tax_in_price INTEGER DEFAULT 1, gstin_number TEXT DEFAULT '09AAAFQ1234A1Z5')`);
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS payment_settings (id INTEGER PRIMARY KEY DEFAULT 1, qr_code_enabled INTEGER DEFAULT 1, upi_id TEXT DEFAULT 'qualityglass@upi', account_holder TEXT DEFAULT 'Quality Glass Emporium', qr_image_url TEXT DEFAULT 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium', qr_instructions TEXT DEFAULT 'Scan QR code using GPay, PhonePe, Paytm, or BHIM. Enter your 12-digit UTR reference number and upload payment screenshot.', bank_transfer_enabled INTEGER DEFAULT 1, bank_name TEXT DEFAULT 'State Bank of India', account_number TEXT DEFAULT '389201004921', ifsc_code TEXT DEFAULT 'SBIN0000465', branch TEXT DEFAULT 'Raebareli Main Branch', bank_instructions TEXT DEFAULT 'Transfer total order amount via IMPS / NEFT / RTGS to store bank account.', cod_enabled INTEGER DEFAULT 1)`);
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS coupons (id TEXT PRIMARY KEY, code TEXT UNIQUE, discount_type TEXT, discount_value REAL, min_spend REAL, expiry_date TEXT, usage_count INTEGER DEFAULT 0, is_active INTEGER DEFAULT 1, created_at TEXT)`);
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS reviews (id TEXT PRIMARY KEY, product_id TEXT, customer_name TEXT, rating INTEGER, comment TEXT, is_approved INTEGER DEFAULT 1, created_at TEXT)`);
+
+      // Seed settings row id=1
+      sqliteDb.run(`INSERT OR IGNORE INTO site_settings (id, store_name, tagline, email, phone, address, currency, logo, meta_title, meta_description, meta_keywords) VALUES (1, 'Quality Glass Emporium', 'Bespoke Framing, Photo Studio & Customized Gifts', 'contact@qualityglassemporium.com', '+91 94150 12345', 'Belliganj Malik Mau Road, Near Hotel Ganesh, PNT Colony, Raebareli-229001, Uttar Pradesh', '₹', 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=400&q=80', 'Quality Glass Emporium | Custom Frames, Passport Studio & Gifts', 'Bespoke photo frames, acrylic sheets, canvas prints, passport photos, photo lamps, custom mugs & gifts in Raebareli.', 'photo frames, acrylic frames, canvas prints, passport photos, photo studio, custom gifts, photo lamps, mugs, keychains, Raebareli')`);
+      sqliteDb.run(`INSERT OR IGNORE INTO shipping_settings (id, free_shipping_threshold, flat_shipping_rate, express_delivery_rate) VALUES (1, 999.00, 79.00, 149.00)`);
+      sqliteDb.run(`INSERT OR IGNORE INTO tax_settings (id, tax_rate_percentage) VALUES (1, 18.00)`);
+      sqliteDb.run(`INSERT OR IGNORE INTO payment_settings (id, qr_code_enabled, upi_id, account_holder, qr_image_url, qr_instructions, bank_transfer_enabled, bank_name, account_number, ifsc_code, branch, bank_instructions, cod_enabled) VALUES (1, 1, 'qualityglass@upi', 'Quality Glass Emporium', 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium', 'Scan QR code using GPay, PhonePe, Paytm, or BHIM. Enter your 12-digit UTR reference number and upload payment screenshot.', 1, 'State Bank of India', '389201004921', 'SBIN0000465', 'Raebareli Main Branch', 'Transfer total order amount via IMPS / NEFT / RTGS to store bank account.', 1)`);
 
       for (const p of defaultProducts) {
         sqliteDb.run(
@@ -394,9 +657,24 @@ export async function initDb() {
           [u.id, u.name, u.username, u.password, u.role]
         );
       }
+
+      for (const c of defaultCategories) {
+        sqliteDb.run(
+          `INSERT OR IGNORE INTO categories (id, name, slug, description, image, icon, display_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+          [c.id, c.name, c.slug, c.description, c.image, c.icon, c.display_order]
+        );
+      }
+
+      for (const b of defaultBanners) {
+        sqliteDb.run(
+          `INSERT OR IGNORE INTO banners (id, title, subtitle, image_url, cta_text, cta_link, display_order, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+          [b.id, b.title, b.subtitle, b.image_url, b.cta_text, b.cta_link, b.display_order, b.is_active ? 1 : 0]
+        );
+      }
     });
   }
 }
 
 // Auto-run initDb
 initDb().catch(() => {});
+

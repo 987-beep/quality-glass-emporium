@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
 
+const STORE_COLLECTIONS_NAV = [
+  { id: 'all', name: 'All Collections', icon: 'auto_awesome' },
+  { id: 'photo-frames', name: 'Photo Frames', icon: 'filter' },
+  { id: 'anime', name: 'Anime Art', icon: 'smart_toy' },
+  { id: 'religious', name: 'Religious Icons', icon: 'temple_hindu' },
+  { id: 'manwha', name: 'Manwha Prints', icon: 'auto_stories' },
+  { id: 'gifts', name: 'Custom Gifts', icon: 'redeem' },
+  { id: 'acrylic-frames', name: 'Acrylic Frames', icon: 'aspect_ratio' }
+];
+
 export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth, onLogout, themeMode, toggleTheme }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [collectionsDropdownOpen, setCollectionsDropdownOpen] = useState(false);
 
   return (
-    <header className="w-full bg-background border-b border-outline-variant transition-colors duration-300">
+    <header className="w-full bg-background border-b border-outline-variant transition-colors duration-300 relative z-50">
       <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-4 flex flex-col items-center justify-center space-y-3">
         
         {/* ROW 1: Brand Name in Attractive Single Line Font & Subtitle Badge */}
@@ -34,14 +45,46 @@ export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth,
               Home
             </button>
 
-            <button
-              onClick={() => setActivePage('collection')}
-              className={`font-label-bold text-xs uppercase tracking-widest px-2.5 py-1 transition-all whitespace-nowrap ${
-                activePage === 'collection' ? 'text-primary border-b-2 border-primary font-bold' : 'text-on-surface-variant hover:text-primary'
-              }`}
+            {/* Collections Dropdown Link */}
+            <div
+              className="relative"
+              onMouseEnter={() => setCollectionsDropdownOpen(true)}
+              onMouseLeave={() => setCollectionsDropdownOpen(false)}
             >
-              Catalog
-            </button>
+              <button
+                onClick={() => setActivePage('collection')}
+                className={`font-label-bold text-xs uppercase tracking-widest px-2.5 py-1 transition-all whitespace-nowrap flex items-center space-x-1 ${
+                  activePage === 'collection' ? 'text-primary border-b-2 border-primary font-bold' : 'text-on-surface-variant hover:text-primary'
+                }`}
+              >
+                <span>Collections</span>
+                <span className="material-symbols-outlined text-sm transition-transform duration-200">
+                  {collectionsDropdownOpen ? 'expand_less' : 'expand_more'}
+                </span>
+              </button>
+
+              {/* Dropdown Menu */}
+              {collectionsDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-56 bg-surface-container-low border border-outline-variant rounded-md shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="px-3 py-1 text-[10px] uppercase font-bold text-primary tracking-widest border-b border-outline-variant/40 mb-1">
+                    Store Collections
+                  </div>
+                  {STORE_COLLECTIONS_NAV.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        setActivePage('collection', { category: c.id });
+                        setCollectionsDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs text-on-surface hover:bg-surface-container-high hover:text-primary transition-colors flex items-center space-x-2.5 font-semibold"
+                    >
+                      <span className="material-symbols-outlined text-base text-primary/80">{c.icon}</span>
+                      <span>{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <button
               onClick={() => setActivePage('frame-studio')}
@@ -162,12 +205,26 @@ export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth,
           >
             Home
           </button>
-          <button
-            onClick={() => { setActivePage('collection'); setMobileMenuOpen(false); }}
-            className="block w-full text-left font-label-bold text-xs uppercase text-on-surface hover:text-primary py-2 font-bold"
-          >
-            Catalog
-          </button>
+
+          <div className="space-y-1 py-1 border-y border-outline-variant/40">
+            <span className="block font-label-bold text-[10px] uppercase text-primary font-bold tracking-widest pt-1">
+              Store Collections:
+            </span>
+            {STORE_COLLECTIONS_NAV.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => {
+                  setActivePage('collection', { category: c.id });
+                  setMobileMenuOpen(false);
+                }}
+                className="block w-full text-left text-xs text-on-surface hover:text-primary py-1.5 pl-2 font-medium flex items-center space-x-2"
+              >
+                <span className="material-symbols-outlined text-sm text-primary">{c.icon}</span>
+                <span>{c.name}</span>
+              </button>
+            ))}
+          </div>
+
           <button
             onClick={() => { setActivePage('frame-studio'); setMobileMenuOpen(false); }}
             className="block w-full text-left font-label-bold text-xs uppercase text-primary font-bold py-2"
