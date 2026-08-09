@@ -77,10 +77,12 @@ export function syncProductsWithLocal(serverProducts) {
   const localList = getLocalProducts();
 
   const map = new Map();
-  serverList.forEach(p => {
+  // 1. Add local fallback draft items
+  localList.forEach(p => {
     if (p && p.id) map.set(p.id, p);
   });
-  localList.forEach(p => {
+  // 2. Add server items so fresh server data ALWAYS overrides stale cache
+  serverList.forEach(p => {
     if (p && p.id) map.set(p.id, p);
   });
 

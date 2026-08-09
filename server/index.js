@@ -166,25 +166,38 @@ app.get('/api/products', async (req, res) => {
     }
 
     const rows = await query(sqlText, params);
-    const mapped = rows.map(r => ({
-      id: r.id,
-      name: r.name,
-      slug: r.slug,
-      categoryId: r.category_id,
-      categoryName: r.category_name,
-      price: parseFloat(r.price),
-      originalPrice: parseFloat(r.original_price || r.price),
-      stock: parseInt(r.stock, 10),
-      rating: parseFloat(r.rating || 5.0),
-      reviewsCount: parseInt(r.reviews_count || 0, 10),
-      description: r.description || '',
-      image: r.image || '',
-      isCustomizable: Boolean(r.is_customizable),
-      isFrame: Boolean(r.is_frame),
-      frameMaterial: r.frame_material || 'Natural Wood',
-      displayOrder: parseInt(r.display_order || 0, 10),
-      createdAt: r.created_at
-    }));
+    const mapped = rows.map(r => {
+      const catId = r.category_id || r.categoryId || 'photo-frames';
+      const origPrice = parseFloat(r.original_price || r.originalPrice || r.price || 0);
+      const isCust = Boolean(r.is_customizable !== undefined ? r.is_customizable : r.isCustomizable);
+      const isFrm = Boolean(r.is_frame !== undefined ? r.is_frame : r.isFrame);
+      const fMaterial = r.frame_material || r.frameMaterial || 'Natural Wood';
+
+      return {
+        id: r.id,
+        name: r.name,
+        slug: r.slug,
+        categoryId: catId,
+        category_id: catId,
+        categoryName: r.category_name || r.categoryName || '',
+        price: parseFloat(r.price || 0),
+        originalPrice: origPrice,
+        original_price: origPrice,
+        stock: parseInt(r.stock || 0, 10),
+        rating: parseFloat(r.rating || 5.0),
+        reviewsCount: parseInt(r.reviews_count || r.reviewsCount || 0, 10),
+        description: r.description || '',
+        image: r.image || '',
+        isCustomizable: isCust,
+        is_customizable: isCust,
+        isFrame: isFrm,
+        is_frame: isFrm,
+        frameMaterial: fMaterial,
+        frame_material: fMaterial,
+        displayOrder: parseInt(r.display_order || r.displayOrder || 0, 10),
+        createdAt: r.created_at || r.createdAt
+      };
+    });
 
     res.json(mapped);
   } catch (err) {
