@@ -9,6 +9,8 @@ export function BrandingManager({ token }) {
   const [address, setAddress] = useState('');
   const [logo, setLogo] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     apiFetch('/api/settings')
@@ -24,22 +26,34 @@ export function BrandingManager({ token }) {
       .catch(() => {});
   }, []);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    apiFetch('/api/admin/settings', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ storeName, tagline, email, phone, address, logo })
-    })
-      .then(res => res.json())
-      .then(() => {
-        setSavedMsg('Store branding and contact information updated!');
-        setTimeout(() => setSavedMsg(''), 3000);
-      })
-      .catch(() => {});
+    setIsSaving(true);
+    setSavedMsg('');
+    setErrorMsg('');
+
+    try {
+      const res = await apiFetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ storeName, tagline, email, phone, address, logo })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSavedMsg('Store branding and contact information saved permanently to database!');
+        setTimeout(() => setSavedMsg(''), 4000);
+      } else {
+        setErrorMsg(data.error || 'Failed to save store branding');
+      }
+    } catch (err) {
+      setErrorMsg('Network error saving branding: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -51,8 +65,16 @@ export function BrandingManager({ token }) {
       </div>
 
       {savedMsg && (
-        <div className="bg-primary/10 border border-primary text-primary text-xs p-3 rounded font-bold">
-          {savedMsg}
+        <div className="bg-primary/10 border border-primary text-primary text-xs p-3 rounded font-bold flex items-center space-x-2">
+          <span className="material-symbols-outlined text-sm">check_circle</span>
+          <span>{savedMsg}</span>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="bg-error/10 border border-error text-error text-xs p-3 rounded font-bold flex items-center space-x-2">
+          <span className="material-symbols-outlined text-sm">error</span>
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -125,9 +147,11 @@ export function BrandingManager({ token }) {
 
         <button
           type="submit"
-          className="bg-primary text-on-primary font-bold uppercase px-6 py-2.5 rounded hover:bg-primary-fixed transition-all"
+          disabled={isSaving}
+          className="bg-primary text-on-primary font-bold uppercase px-6 py-2.5 rounded hover:bg-primary-fixed transition-all disabled:opacity-50 flex items-center space-x-2"
         >
-          Save Store Branding
+          {isSaving && <span className="material-symbols-outlined text-sm animate-spin">sync</span>}
+          <span>{isSaving ? 'Saving...' : 'Save Store Branding'}</span>
         </button>
       </form>
 

@@ -15,6 +15,10 @@ dist/
 dist-ssr/
 *.local
 
+# SQLite & Dev testing
+server/*.sqlite
+server/test_persistence.js
+
 # Editor & OS files
 .vscode/*
 !.vscode/extensions.json

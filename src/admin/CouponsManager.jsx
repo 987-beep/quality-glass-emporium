@@ -7,13 +7,17 @@ export function CouponsManager({ token }) {
   const [discountType, setDiscountType] = useState('percentage');
   const [discountValue, setDiscountValue] = useState(10);
   const [minSpend, setMinSpend] = useState(499);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState('');
 
   const fetchCoupons = () => {
     apiFetch('/api/admin/coupons', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
-      .then(data => setCoupons(data))
+      .then(data => {
+        if (Array.isArray(data)) setCoupons(data);
+      })
       .catch(() => {});
   };
 
@@ -21,40 +25,53 @@ export function CouponsManager({ token }) {
     fetchCoupons();
   }, []);
 
-  const handleCreateCoupon = (e) => {
+  const handleCreateCoupon = async (e) => {
     e.preventDefault();
     if (!code.trim()) return;
 
-    apiFetch('/api/admin/coupons', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        code: code.toUpperCase(),
-        discountType,
-        discountValue: parseFloat(discountValue),
-        minSpend: parseFloat(minSpend),
-        expiryDate: '2027-12-31'
-      })
-    })
-      .then(res => res.json())
-      .then(() => {
+    setIsSaving(true);
+    setSavedMsg('');
+
+    try {
+      const res = await apiFetch('/api/admin/coupons', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          code: code.toUpperCase(),
+          discountType,
+          discountValue: parseFloat(discountValue),
+          minSpend: parseFloat(minSpend),
+          expiryDate: '2027-12-31'
+        })
+      });
+
+      if (res.ok) {
         setCode('');
+        setSavedMsg(`Coupon code '${code.toUpperCase()}' saved to database!`);
+        setTimeout(() => setSavedMsg(''), 3000);
         fetchCoupons();
-      })
-      .catch(() => {});
+      }
+    } catch (err) {
+      alert('Error creating coupon: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDelete = (id) => {
-    apiFetch(`/api/admin/coupons/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(() => fetchCoupons())
-      .catch(() => {});
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete coupon code from database?')) return;
+    try {
+      const res = await apiFetch(`/api/admin/coupons/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) fetchCoupons();
+    } catch (err) {
+      alert('Error deleting coupon: ' + err.message);
+    }
   };
 
   return (
@@ -65,30 +82,41 @@ export function CouponsManager({ token }) {
         <h1 className="font-headline font-bold text-2xl text-on-surface">Coupon & Discount Codes</h1>
       </div>
 
+      {savedMsg && (
+        <div className="bg-primary/10 border border-primary text-primary text-xs p-3 rounded font-bold flex items-center space-x-2">
+          <span className="material-symbols-outlined text-sm">check_circle</span>
+          <span>{savedMsg}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left List */}
         <div className="lg:col-span-7 bg-surface-container-low border border-outline-variant rounded p-4">
           <div className="space-y-3">
-            {coupons.map((c) => (
-              <div key={c.id} className="flex items-center justify-between p-3 bg-surface-container-high rounded border border-outline-variant text-xs">
-                <div>
-                  <span className="font-mono font-bold text-primary text-sm">{c.code}</span>
-                  <div className="text-[10px] text-on-surface-variant">
-                    {c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT OFF`} • Min Spend ₹{c.minSpend}
+            {coupons.length === 0 ? (
+              <p className="text-xs text-on-surface-variant p-4 text-center">No coupon codes in database.</p>
+            ) : (
+              coupons.map((c) => (
+                <div key={c.id} className="flex items-center justify-between p-3 bg-surface-container-high rounded border border-outline-variant text-xs">
+                  <div>
+                    <span className="font-mono font-bold text-primary text-sm">{c.code}</span>
+                    <div className="text-[10px] text-on-surface-variant">
+                      {c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT OFF`} • Min Spend ₹{c.minSpend}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <span className="text-[10px] bg-primary/10 text-primary border border-primary/40 px-2 py-0.5 rounded font-bold">
+                      Used {c.usageCount} times
+                    </span>
+                    <button onClick={() => handleDelete(c.id)} className="text-error font-bold hover:underline">
+                      Delete
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex items-center space-x-3">
-                  <span className="text-[10px] bg-primary/10 text-primary border border-primary/40 px-2 py-0.5 rounded font-bold">
-                    Used {c.usageCount} times
-                  </span>
-                  <button onClick={() => handleDelete(c.id)} className="text-error font-bold hover:underline">
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -146,9 +174,11 @@ export function CouponsManager({ token }) {
 
             <button
               type="submit"
-              className="w-full bg-primary text-on-primary font-bold uppercase py-2.5 rounded hover:bg-primary-fixed transition-all"
+              disabled={isSaving}
+              className="w-full bg-primary text-on-primary font-bold uppercase py-2.5 rounded hover:bg-primary-fixed transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
-              Generate Coupon Code
+              {isSaving && <span className="material-symbols-outlined text-sm animate-spin">sync</span>}
+              <span>{isSaving ? 'Creating...' : 'Generate Coupon Code'}</span>
             </button>
           </form>
         </div>

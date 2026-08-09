@@ -9,6 +9,8 @@ export function BannersManager({ token }) {
   const [imageUrl, setImageUrl] = useState('');
   const [ctaText, setCtaText] = useState('Explore Framing');
   const [ctaLink, setCtaLink] = useState('/frame-studio');
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState('');
 
   const fetchBanners = () => {
     apiFetch('/api/admin/banners', {
@@ -23,42 +25,55 @@ export function BannersManager({ token }) {
     fetchBanners();
   }, []);
 
-  const handleAddBanner = (e) => {
+  const handleAddBanner = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || !imageUrl.trim()) return;
 
-    apiFetch('/api/admin/banners', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        title,
-        subtitle,
-        imageUrl: imageUrl || 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80',
-        ctaText,
-        ctaLink
-      })
-    })
-      .then(res => res.json())
-      .then(() => {
+    setIsSaving(true);
+    setSavedMsg('');
+
+    try {
+      const res = await apiFetch('/api/admin/banners', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title,
+          subtitle,
+          imageUrl,
+          ctaText,
+          ctaLink
+        })
+      });
+
+      if (res.ok) {
         setTitle('');
         setSubtitle('');
         setImageUrl('');
+        setSavedMsg('New hero banner saved to database!');
+        setTimeout(() => setSavedMsg(''), 3000);
         fetchBanners();
-      })
-      .catch(() => {});
+      }
+    } catch (err) {
+      alert('Error publishing banner: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDelete = (id) => {
-    apiFetch(`/api/admin/banners/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(() => fetchBanners())
-      .catch(() => {});
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this banner from database?')) return;
+    try {
+      const res = await apiFetch(`/api/admin/banners/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) fetchBanners();
+    } catch (err) {
+      alert('Error deleting banner: ' + err.message);
+    }
   };
 
   return (
@@ -69,27 +84,38 @@ export function BannersManager({ token }) {
         <h1 className="font-headline font-bold text-2xl text-on-surface">Homepage Hero Banners</h1>
       </div>
 
+      {savedMsg && (
+        <div className="bg-primary/10 border border-primary text-primary text-xs p-3 rounded font-bold flex items-center space-x-2">
+          <span className="material-symbols-outlined text-sm">check_circle</span>
+          <span>{savedMsg}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Banners List */}
         <div className="lg:col-span-7 bg-surface-container-low border border-outline-variant rounded p-4 space-y-4">
-          {banners.map((b) => (
-            <div key={b.id} className="relative aspect-16/7 rounded overflow-hidden border border-outline-variant group">
-              <img src={b.imageUrl} alt={b.title} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-background/70 p-4 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-headline font-bold text-sm text-primary">{b.title}</h3>
-                  <p className="text-[10px] text-on-surface-variant line-clamp-1">{b.subtitle}</p>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] bg-primary text-on-primary px-2 py-0.5 rounded font-bold uppercase">{b.ctaText}</span>
-                  <button onClick={() => handleDelete(b.id)} className="text-error font-bold hover:underline text-xs">
-                    Delete Banner
-                  </button>
+          {banners.length === 0 ? (
+            <p className="text-xs text-on-surface-variant p-4 text-center">No active banners in database.</p>
+          ) : (
+            banners.map((b) => (
+              <div key={b.id} className="relative aspect-16/7 rounded overflow-hidden border border-outline-variant group">
+                <img src={b.imageUrl} alt={b.title} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-background/70 p-4 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-headline font-bold text-sm text-primary">{b.title}</h3>
+                    <p className="text-[10px] text-on-surface-variant line-clamp-1">{b.subtitle}</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] bg-primary text-on-primary px-2 py-0.5 rounded font-bold uppercase">{b.ctaText}</span>
+                    <button onClick={() => handleDelete(b.id)} className="text-error font-bold hover:underline text-xs">
+                      Delete Banner
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Right Form */}
@@ -152,9 +178,11 @@ export function BannersManager({ token }) {
 
             <button
               type="submit"
-              className="w-full bg-primary text-on-primary font-bold uppercase py-2.5 rounded hover:bg-primary-fixed transition-all"
+              disabled={isSaving}
+              className="w-full bg-primary text-on-primary font-bold uppercase py-2.5 rounded hover:bg-primary-fixed transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
-              Publish Hero Banner
+              {isSaving && <span className="material-symbols-outlined text-sm animate-spin">sync</span>}
+              <span>{isSaving ? 'Publishing...' : 'Publish Hero Banner'}</span>
             </button>
           </form>
         </div>

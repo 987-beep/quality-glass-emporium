@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, syncOrdersWithLocal, getLocalOrders } from '../api';
 
 export function MyOrders({ user, token, setActivePage }) {
   const [orders, setOrders] = useState([]);
@@ -8,7 +8,10 @@ export function MyOrders({ user, token, setActivePage }) {
 
   useEffect(() => {
     const savedToken = token || localStorage.getItem('qge_token');
+    const local = getLocalOrders();
+
     if (!savedToken) {
+      setOrders(local);
       setIsLoading(false);
       return;
     }
@@ -19,12 +22,12 @@ export function MyOrders({ user, token, setActivePage }) {
       .then(res => res.json())
       .then(data => {
         setIsLoading(false);
-        if (Array.isArray(data)) {
-          setOrders(data);
-        }
+        const merged = syncOrdersWithLocal(data);
+        setOrders(merged);
       })
       .catch(() => {
         setIsLoading(false);
+        setOrders(local);
       });
   }, [token]);
 

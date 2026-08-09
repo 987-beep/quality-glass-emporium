@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ProductCard } from '../components/ProductCard';
-import { apiFetch } from '../api';
+import { apiFetch, getLocalProducts, syncProductsWithLocal } from '../api';
 
 export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameStudio }) {
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -26,8 +26,16 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
 
     apiFetch('/api/products?limit=6')
       .then(res => res.json())
-      .then(data => setFeaturedProducts(data))
-      .catch(() => {});
+      .then(data => {
+        const merged = syncProductsWithLocal(data);
+        setFeaturedProducts(merged.slice(0, 6));
+      })
+      .catch(() => {
+        const local = getLocalProducts();
+        if (local && Array.isArray(local)) {
+          setFeaturedProducts(local.slice(0, 6));
+        }
+      });
   }, []);
 
   const hero = mainPageConfig?.hero || {

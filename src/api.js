@@ -31,3 +31,40 @@ export function getAssetUrl(relativePath) {
   }
   return `${API_BASE}${relativePath.startsWith('/') ? '' : '/'}${relativePath}`;
 }
+
+// Pass-through helpers for backward compatibility without localStorage override pollution
+export function getLocalProducts() {
+  return null;
+}
+
+export function setLocalProducts() {
+  // No-op: Database is the single source of truth
+}
+
+export function syncProductsWithLocal(serverProducts) {
+  return Array.isArray(serverProducts) ? serverProducts : [];
+}
+
+export function getLocalCategories() {
+  return null;
+}
+
+export function setLocalCategories() {
+  // No-op
+}
+
+export function syncCategoriesWithLocal(serverCategories) {
+  return Array.isArray(serverCategories) ? serverCategories : [];
+}
+
+export function getLocalOrders() {
+  return [];
+}
+
+export function setLocalOrders() {
+  // No-op
+}
+
+export function syncOrdersWithLocal(serverOrders) {
+  return Array.isArray(serverOrders) ? serverOrders : [];
+}

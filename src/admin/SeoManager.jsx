@@ -6,6 +6,8 @@ export function SeoManager({ token }) {
   const [metaDescription, setMetaDescription] = useState('');
   const [metaKeywords, setMetaKeywords] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     apiFetch('/api/settings')
@@ -18,22 +20,34 @@ export function SeoManager({ token }) {
       .catch(() => {});
   }, []);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    apiFetch('/api/admin/settings', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ metaTitle, metaDescription, metaKeywords })
-    })
-      .then(res => res.json())
-      .then(() => {
-        setSavedMsg('SEO Meta tags updated successfully!');
-        setTimeout(() => setSavedMsg(''), 3000);
-      })
-      .catch(() => {});
+    setIsSaving(true);
+    setSavedMsg('');
+    setErrorMsg('');
+
+    try {
+      const res = await apiFetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ metaTitle, metaDescription, metaKeywords })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSavedMsg('SEO Meta tags saved permanently to database!');
+        setTimeout(() => setSavedMsg(''), 4000);
+      } else {
+        setErrorMsg(data.error || 'Failed to save SEO meta settings');
+      }
+    } catch (err) {
+      setErrorMsg('Network error saving SEO settings: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -45,8 +59,16 @@ export function SeoManager({ token }) {
       </div>
 
       {savedMsg && (
-        <div className="bg-primary/10 border border-primary text-primary text-xs p-3 rounded font-bold">
-          {savedMsg}
+        <div className="bg-primary/10 border border-primary text-primary text-xs p-3 rounded font-bold flex items-center space-x-2">
+          <span className="material-symbols-outlined text-sm">check_circle</span>
+          <span>{savedMsg}</span>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="bg-error/10 border border-error text-error text-xs p-3 rounded font-bold flex items-center space-x-2">
+          <span className="material-symbols-outlined text-sm">error</span>
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -99,9 +121,11 @@ export function SeoManager({ token }) {
 
           <button
             type="submit"
-            className="bg-primary text-on-primary font-bold uppercase px-6 py-2.5 rounded hover:bg-primary-fixed transition-all"
+            disabled={isSaving}
+            className="bg-primary text-on-primary font-bold uppercase px-6 py-2.5 rounded hover:bg-primary-fixed transition-all disabled:opacity-50 flex items-center space-x-2"
           >
-            Save SEO Meta Settings
+            {isSaving && <span className="material-symbols-outlined text-sm animate-spin">sync</span>}
+            <span>{isSaving ? 'Saving...' : 'Save SEO Meta Settings'}</span>
           </button>
         </div>
       </form>

@@ -144,26 +144,30 @@ export function FileUploadInput({
       } else {
         const rawFile = files[0];
         const fileToUpload = await compressImageFile(rawFile);
-        const formData = new FormData();
-        formData.append('photo', fileToUpload);
+        const base64 = await readFileAsBase64(fileToUpload);
 
+        // Try posting to backend upload endpoint to persist on server disk as well
         try {
+          const formData = new FormData();
+          formData.append('photo', fileToUpload);
           const res = await apiFetch('/api/upload', {
             method: 'POST',
             body: formData,
             headers: token ? { Authorization: `Bearer ${token}` } : {}
           });
-
           if (res.ok) {
             const data = await res.json();
-            onChange(data.url);
+            // Pass server upload URL if HTTP, or robust base64 Data URL if relative
+            if (data.url && data.url.startsWith('http')) {
+              onChange(data.url);
+            } else {
+              onChange(base64 || data.url);
+            }
           } else {
-            const base64 = await readFileAsBase64(fileToUpload);
-            if (base64) onChange(base64);
+            onChange(base64);
           }
         } catch {
-          const base64 = await readFileAsBase64(fileToUpload);
-          if (base64) onChange(base64);
+          onChange(base64);
         }
       }
     } catch (err) {

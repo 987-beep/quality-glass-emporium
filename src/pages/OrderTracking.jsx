@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, getLocalOrders } from '../api';
 
 export function OrderTracking({ initialQuery, setActivePage }) {
   const [searchQuery, setSearchQuery] = useState(initialQuery || '');
@@ -12,20 +12,35 @@ export function OrderTracking({ initialQuery, setActivePage }) {
     setIsLoading(true);
     setErrorMsg('');
 
+    const targetQuery = q.trim().toLowerCase();
+    const localOrders = getLocalOrders();
+    const foundLocal = localOrders.find(o => 
+      (o.orderNumber && o.orderNumber.toLowerCase() === targetQuery) ||
+      (o.trackingNumber && o.trackingNumber.toLowerCase() === targetQuery) ||
+      (o.customerPhone && o.customerPhone.toLowerCase() === targetQuery) ||
+      (o.utrNumber && o.utrNumber.toLowerCase() === targetQuery)
+    );
+
     apiFetch(`/api/orders/track/${encodeURIComponent(q)}`)
       .then(res => res.json())
       .then(data => {
         setIsLoading(false);
-        if (data.error) {
-          setErrorMsg(data.error);
-          setTrackedOrder(null);
-        } else {
+        if (data && !data.error) {
           setTrackedOrder(data);
+        } else if (foundLocal) {
+          setTrackedOrder(foundLocal);
+        } else {
+          setErrorMsg(data.error || 'No matching order found');
+          setTrackedOrder(null);
         }
       })
       .catch(() => {
         setIsLoading(false);
-        setErrorMsg('Error querying order tracking server');
+        if (foundLocal) {
+          setTrackedOrder(foundLocal);
+        } else {
+          setErrorMsg('No matching order found');
+        }
       });
   };
 
