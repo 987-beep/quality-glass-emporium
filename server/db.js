@@ -98,6 +98,108 @@ const defaultProducts = [
     is_frame: false,
     frame_material: "Acrylic & Wood",
     display_order: 3
+  },
+  {
+    id: "prod-1786260237808",
+    name: "Solo Leveling Sung Jin-Woo Shadow Monarch Glass Frame",
+    slug: "solo-leveling-sung-jin-woo-shadow-monarch-glass-frame",
+    category_id: "anime",
+    price: 450,
+    original_price: 850,
+    stock: 25,
+    rating: 5.0,
+    reviews_count: 12,
+    description: "Premium high-gloss frameless glass poster featuring Sung Jin-Woo, the Shadow Monarch from Solo Leveling. Handcrafted with 99.9% optical clarity and vibrant UV-resistant color depth.",
+    image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80",
+    is_customizable: true,
+    is_frame: true,
+    frame_material: "Tempered Acrylic Glass",
+    display_order: 4
+  },
+  {
+    id: "prod-1786260508001",
+    name: "Black Myth Wukong Golden Armor Glass Print",
+    slug: "black-myth-wukong-golden-armor-glass-print",
+    category_id: "anime",
+    price: 899,
+    original_price: 1499,
+    stock: 30,
+    rating: 5.0,
+    reviews_count: 8,
+    description: "Handcrafted 6mm high-clarity tempered glass poster featuring Sun Wukong in majestic golden battle armor with metallic sheen and crisp detail.",
+    image: "/products/wukong-golden-armor.jpg",
+    is_customizable: true,
+    is_frame: true,
+    frame_material: "6mm Tempered Glass",
+    display_order: 5
+  },
+  {
+    id: "prod-1786260508277",
+    name: "Black Myth Wukong Title Edition Glass Frame",
+    slug: "black-myth-wukong-title-edition-glass-frame",
+    category_id: "anime",
+    price: 799,
+    original_price: 1299,
+    stock: 25,
+    rating: 5.0,
+    reviews_count: 15,
+    description: "Official style Black Myth Wukong title artwork glass print with blindfolded Destined One art and dark textured aesthetic.",
+    image: "/products/black-myth-wukong-title.jpg",
+    is_customizable: true,
+    is_frame: true,
+    frame_material: "Frameless Acrylic Glass",
+    display_order: 6
+  },
+  {
+    id: "prod-1786260508555",
+    name: "Mythic Mist Mountains Wukong Landscape Print",
+    slug: "mythic-mist-mountains-wukong-landscape-print",
+    category_id: "anime",
+    price: 999,
+    original_price: 1699,
+    stock: 20,
+    rating: 5.0,
+    reviews_count: 9,
+    description: "Panoramic mist-covered mountain peak scenery with Sun Wukong and companion standing over ancient Chinese mountain ranges.",
+    image: "/products/mythic-mist-mountains.jpg",
+    is_customizable: true,
+    is_frame: true,
+    frame_material: "Natural Walnut Wooden Frame",
+    display_order: 7
+  },
+  {
+    id: "prod-1786260508827",
+    name: "Sun Wukong Golden Headband Relic Frame",
+    slug: "sun-wukong-golden-headband-relic-frame",
+    category_id: "anime",
+    price: 749,
+    original_price: 1199,
+    stock: 35,
+    rating: 5.0,
+    reviews_count: 21,
+    description: "Intricate close-up glass art frame of Sun Wukong holding the sacred Golden Headband (Tight-Fillet Crown) with glowing highlights.",
+    image: "/products/wukong-golden-headband.jpg",
+    is_customizable: true,
+    is_frame: true,
+    frame_material: "Tempered Glass Block",
+    display_order: 8
+  },
+  {
+    id: "prod-1786260509143",
+    name: "Celestial Anime Moonlight Landscape Frame",
+    slug: "celestial-anime-moonlight-landscape-frame",
+    category_id: "anime",
+    price: 699,
+    original_price: 1099,
+    stock: 40,
+    rating: 5.0,
+    reviews_count: 14,
+    description: "Vibrant anime night sky landscape featuring glowing full moon, cumulus clouds, rolling green hills, and starry sky optical clarity.",
+    image: "/products/celestial-anime-moonlight.jpg",
+    is_customizable: true,
+    is_frame: true,
+    frame_material: "Acrylic Frame",
+    display_order: 9
   }
 ];
 
@@ -192,7 +294,15 @@ export async function query(sqlText, params = []) {
     const sqlUpper = sqlText.toUpperCase();
     
     if (sqlUpper.startsWith('SELECT')) {
-      if (sqlUpper.includes('FROM PRODUCTS')) return memoryStore.products;
+      if (sqlUpper.includes('FROM PRODUCTS')) {
+        let list = [...memoryStore.products];
+        // If category filter is present in params
+        if (params.length > 0 && typeof params[0] === 'string' && params[0] !== 'all') {
+          const cat = params[0].toLowerCase();
+          list = list.filter(p => (p.category_id && p.category_id.toLowerCase() === cat) || (p.slug && p.slug.toLowerCase() === cat));
+        }
+        return list;
+      }
       if (sqlUpper.includes('FROM CATEGORIES')) return memoryStore.categories;
       if (sqlUpper.includes('FROM BANNERS')) return memoryStore.banners;
       if (sqlUpper.includes('FROM USERS')) {
@@ -255,6 +365,7 @@ export async function query(sqlText, params = []) {
         created_at: new Date().toISOString()
       };
       memoryStore.products.unshift(newProd);
+      defaultProducts.unshift(newProd);
       return [{ id: 1, changes: 1 }];
     } else if (sqlUpper.startsWith('INSERT INTO USERS')) {
       const [newId, name, username, password, role] = params;
