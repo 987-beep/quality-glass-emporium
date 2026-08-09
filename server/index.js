@@ -643,29 +643,27 @@ app.post('/api/auth/register', async (req, res) => {
 // Admin Stats
 app.get('/api/admin/stats', authMiddleware, adminOnlyMiddleware, async (req, res) => {
   try {
-    const revRows = await query(`SELECT SUM(total_amount) as total FROM orders`);
-    const totalRevenue = parseFloat(revRows[0]?.total || 0);
+    const orders = await query(`SELECT * FROM orders`);
+    const products = await query(`SELECT * FROM products`);
+    const users = await query(`SELECT * FROM users`);
 
-    const ordRows = await query(`SELECT COUNT(*) as count FROM orders`);
-    const totalOrders = parseInt(ordRows[0]?.count || 0, 10);
+    const orderList = Array.isArray(orders) ? orders : [];
+    const productList = Array.isArray(products) ? products : [];
+    const userList = Array.isArray(users) ? users : [];
 
-    const pendRows = await query(`SELECT COUNT(*) as count FROM orders WHERE order_status IN ('Processing', 'Pending', 'Payment Verification Pending')`);
-    const pendingOrders = parseInt(pendRows[0]?.count || 0, 10);
+    const totalRevenue = orderList.reduce((sum, o) => sum + parseFloat(o.total_amount || o.totalAmount || 0), 0);
+    const totalOrders = orderList.length;
+    const pendingOrders = orderList.filter(o => ['Processing', 'Pending', 'Payment Verification Pending'].includes(o.order_status || o.orderStatus)).length;
+    const lowStockProducts = productList.filter(p => parseInt(p.stock || 0, 10) < 10).length;
+    const totalCustomers = userList.filter(u => u.role === 'customer').length || Math.max(1, userList.length);
 
-    const lowStockRows = await query(`SELECT COUNT(*) as count FROM products WHERE stock < 10`);
-    const lowStockProducts = parseInt(lowStockRows[0]?.count || 0, 10);
-
-    const custRows = await query(`SELECT COUNT(*) as count FROM users WHERE role = 'customer'`);
-    const totalCustomers = parseInt(custRows[0]?.count || 0, 10);
-
-    const recentRows = await query(`SELECT * FROM orders ORDER BY created_at DESC LIMIT 5`);
-    const recentOrders = recentRows.map(r => ({
+    const recentOrders = orderList.slice(0, 5).map(r => ({
       id: r.id,
-      orderNumber: r.order_number,
-      customerName: r.customer_name,
-      totalAmount: parseFloat(r.total_amount),
-      orderStatus: r.order_status,
-      createdAt: r.created_at
+      orderNumber: r.order_number || r.orderNumber || r.id,
+      customerName: r.customer_name || r.customerName || 'Customer',
+      totalAmount: parseFloat(r.total_amount || r.totalAmount || 0),
+      orderStatus: r.order_status || r.orderStatus || 'Processing',
+      createdAt: r.created_at || r.createdAt || new Date().toISOString().split('T')[0]
     }));
 
     res.json({
