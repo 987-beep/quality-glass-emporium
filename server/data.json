@@ -1,20 +1,32 @@
 {
   "users": [
     {
-      "id": 1,
+      "id": "usr-1",
       "name": "Ajmal (Owner)",
       "username": "@OWNERAJMAL69",
       "password": "AJMA6958@",
-      "role": "owner",
-      "createdAt": "2026-08-08T09:31:14.395Z"
+      "role": "owner"
     },
     {
-      "id": 2,
+      "id": "usr-2",
       "name": "Kaatya (Developer)",
       "username": "@KAATYA_OG_",
       "password": "KAATYA6547",
-      "role": "developer",
-      "createdAt": "2026-08-08T09:31:14.395Z"
+      "role": "developer"
+    },
+    {
+      "id": "usr-3",
+      "name": "Store Admin",
+      "username": "admin",
+      "password": "admin123",
+      "role": "admin"
+    },
+    {
+      "id": "usr-4",
+      "name": "Store Admin",
+      "username": "@admin",
+      "password": "admin123",
+      "role": "admin"
     }
   ],
   "paymentConfig": {
@@ -23,7 +35,7 @@
       "upiId": "qualityglass@upi",
       "accountHolder": "Quality Glass Emporium",
       "qrImageUrl": "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium",
-      "instructions": "Scan the Admin uploaded QR code using GPay, PhonePe, Paytm, or BHIM. Enter your 12-digit UTR transaction reference number and upload the screenshot proof."
+      "instructions": "Scan QR code using GPay, PhonePe, Paytm, or BHIM. Enter your 12-digit UTR transaction reference number and upload payment screenshot proof."
     },
     "bankTransfer": {
       "enabled": true,
@@ -32,7 +44,10 @@
       "accountNumber": "389201004921",
       "ifscCode": "SBIN0000465",
       "branch": "Raebareli Main Branch",
-      "instructions": "Transfer total order amount via IMPS / NEFT / RTGS to the store bank account. Enter your 12-digit Bank UTR reference number and upload the payment screenshot proof."
+      "instructions": "Transfer total order amount via IMPS / NEFT / RTGS to store bank account. Enter 12-digit Bank UTR reference number and upload payment screenshot proof."
+    },
+    "cod": {
+      "enabled": true
     }
   },
   "settings": {
@@ -48,6 +63,7 @@
     "metaKeywords": "photo frames, acrylic frames, canvas prints, passport photos, photo studio, custom gifts, photo lamps, mugs, keychains, Raebareli",
     "freeShippingThreshold": 999,
     "flatShippingRate": 79,
+    "expressDeliveryRate": 149,
     "taxRatePercentage": 18
   },
   "categories": [
@@ -56,95 +72,289 @@
       "name": "Photo Frames",
       "slug": "photo-frames",
       "description": "Bespoke Wood, Metal & Glass Frames",
-      "image": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80"
+      "image": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80",
+      "icon": "filter",
+      "display_order": 1
     },
     {
       "id": "acrylic-frames",
       "name": "Acrylic Frames & Sheets",
       "slug": "acrylic-frames",
       "description": "Luminous Frameless Acrylic Blocks & Custom Cut Sheets",
-      "image": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80"
+      "image": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80",
+      "icon": "aspect_ratio",
+      "display_order": 2
+    },
+    {
+      "id": "anime",
+      "name": "Anime & Gaming Glass Art",
+      "slug": "anime",
+      "description": "Solo Leveling & Black Myth Wukong HD UV Glass Posters",
+      "image": "/products/solo-leveling-shadow-monarch.jpg",
+      "icon": "smart_toy",
+      "display_order": 3
+    },
+    {
+      "id": "religious",
+      "name": "Religious Icons & Gold Foil",
+      "slug": "religious",
+      "description": "Shri Ram Darbar & Devotional 3D Gold Embossed Frames",
+      "image": "https://images.unsplash.com/photo-1609137144813-7d9921338f24?auto=format&fit=crop&w=600&q=80",
+      "icon": "temple_hindu",
+      "display_order": 4
     },
     {
       "id": "canvas-prints",
       "name": "Canvas Prints",
       "slug": "canvas-prints",
       "description": "Gallery Wrapped Cotton Canvas Art Prints",
-      "image": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=600&q=80"
+      "image": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=600&q=80",
+      "icon": "palette",
+      "display_order": 5
     },
     {
       "id": "photo-studio",
       "name": "Photo Studio & Passport",
       "slug": "photo-studio",
       "description": "Digital Photo Printing, Passport/Visa Photos & Lamination",
-      "image": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80"
+      "image": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80",
+      "icon": "center_focus_strong",
+      "display_order": 6
     },
     {
       "id": "custom-gifts",
       "name": "Customized Gifts",
       "slug": "custom-gifts",
       "description": "Photo Lamps, Custom Mugs, T-Shirts, Keychains & Covers",
-      "image": "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=600&q=80"
-    },
-    {
-      "id": "photo-albums",
-      "name": "Photo Albums & Memory Books",
-      "slug": "photo-albums",
-      "description": "Leatherette & Hardcover Wedding & Event Albums",
-      "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80"
+      "image": "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=600&q=80",
+      "icon": "redeem",
+      "display_order": 7
     }
   ],
   "products": [
     {
       "id": "prod-1",
       "name": "Bespoke Teak Wood Photo Frame 8x10",
+      "slug": "bespoke-teak-wood-photo-frame-8x10",
       "categoryId": "photo-frames",
       "price": 799,
       "originalPrice": 1299,
       "stock": 25,
-      "description": "Handcrafted premium teak wood picture frame with optical clear float glass.",
+      "rating": 4.9,
+      "reviewsCount": 18,
+      "description": "Handcrafted organic walnut & teak solid wood moulding with 99.9% optical clear glass clarity.",
       "image": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
       "isCustomizable": true,
       "isFrame": true,
-      "frameMaterial": "Teak Wood",
-      "slug": "bespoke-teak-wood-photo-frame-8x10",
-      "rating": 5,
-      "reviewsCount": 1,
-      "createdAt": "2026-08-08T13:11:32.006Z"
+      "frameMaterial": "Teak Wood"
     },
     {
       "id": "prod-2",
-      "name": "Luminous Acrylic Floating Block",
+      "name": "Luminous Frameless Floating Acrylic Block",
+      "slug": "luminous-frameless-floating-acrylic-block",
       "categoryId": "acrylic-frames",
       "price": 1499,
       "originalPrice": 1999,
       "stock": 15,
-      "description": "Ultra-clear crystal acrylic block with magnetic corners for instant photo swaps.",
+      "rating": 5,
+      "reviewsCount": 24,
+      "description": "High-gloss crystal clear acrylic photo block with magnetic corner mounts.",
       "image": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80",
       "isCustomizable": true,
       "isFrame": true,
-      "frameMaterial": "Acrylic Block",
-      "slug": "luminous-acrylic-floating-block",
-      "rating": 5,
-      "reviewsCount": 0,
-      "createdAt": "2026-08-08T13:11:32.006Z"
+      "frameMaterial": "Premium Acrylic"
     },
     {
       "id": "prod-3",
-      "name": "Personalized 3D LED Photo Lamp",
+      "name": "Personalized Glowing 3D Photo Lamp",
+      "slug": "personalized-glowing-3d-photo-lamp",
       "categoryId": "custom-gifts",
-      "price": 999,
-      "originalPrice": 1499,
+      "price": 1199,
+      "originalPrice": 1699,
       "stock": 30,
-      "description": "Custom laser engraved acrylic night light lamp with warm glowing wooden LED base.",
+      "rating": 4.8,
+      "reviewsCount": 42,
+      "description": "Warm LED glowing acrylic photo frame cutout with solid beech wood base.",
       "image": "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=800&q=80",
       "isCustomizable": true,
       "isFrame": false,
-      "frameMaterial": "Acrylic & Wood",
-      "slug": "personalized-3d-led-photo-lamp",
+      "frameMaterial": "Acrylic & Wood"
+    },
+    {
+      "id": "prod-1786260237808",
+      "name": "Solo Leveling Sung Jin-Woo Shadow Monarch Glass Frame",
+      "slug": "solo-leveling-sung-jin-woo-shadow-monarch-glass-frame",
+      "categoryId": "anime",
+      "price": 999,
+      "originalPrice": 1499,
+      "stock": 20,
       "rating": 5,
-      "reviewsCount": 2,
-      "createdAt": "2026-08-08T13:11:32.006Z"
+      "reviewsCount": 15,
+      "description": "Vibrant HD acrylic glass print featuring Sung Jin-Woo with glowing shadow army aura.",
+      "image": "/products/solo-leveling-shadow-monarch.jpg",
+      "isCustomizable": false,
+      "isFrame": true,
+      "frameMaterial": "Tempered Glass"
+    },
+    {
+      "id": "prod-1786260508001",
+      "name": "Black Myth Wukong Golden Armor Glass Print",
+      "slug": "black-myth-wukong-golden-armor-glass-print",
+      "categoryId": "anime",
+      "price": 1199,
+      "originalPrice": 1699,
+      "stock": 18,
+      "rating": 5,
+      "reviewsCount": 22,
+      "description": "Black Myth Wukong Destined One Golden Armor Premium Framed Glass Art.",
+      "image": "/products/wukong-golden-armor.jpg",
+      "isCustomizable": false,
+      "isFrame": true,
+      "frameMaterial": "Tempered Glass"
+    },
+    {
+      "id": "prod-1786260508277",
+      "name": "Black Myth Wukong Title Edition Glass Frame",
+      "slug": "black-myth-wukong-title-edition-glass-frame",
+      "categoryId": "anime",
+      "price": 1099,
+      "originalPrice": 1599,
+      "stock": 15,
+      "rating": 4.9,
+      "reviewsCount": 19,
+      "description": "Official Black Myth Wukong Title Edition UV glass print.",
+      "image": "/products/black-myth-wukong-title.jpg",
+      "isCustomizable": false,
+      "isFrame": true,
+      "frameMaterial": "Tempered Glass"
+    },
+    {
+      "id": "prod-1786260508555",
+      "name": "Mythic Mist Mountains Wukong Landscape Print",
+      "slug": "mythic-mist-mountains-wukong-landscape-print",
+      "categoryId": "anime",
+      "price": 1049,
+      "originalPrice": 1499,
+      "stock": 14,
+      "rating": 4.9,
+      "reviewsCount": 11,
+      "description": "Panoramic misty mountain landscape glass frame.",
+      "image": "/products/mythic-mist-mountains.jpg",
+      "isCustomizable": false,
+      "isFrame": true,
+      "frameMaterial": "Acrylic Glass"
+    },
+    {
+      "id": "prod-1786260508827",
+      "name": "Sun Wukong Golden Headband Relic Frame",
+      "slug": "sun-wukong-golden-headband-relic-frame",
+      "categoryId": "anime",
+      "price": 999,
+      "originalPrice": 1399,
+      "stock": 25,
+      "rating": 4.8,
+      "reviewsCount": 16,
+      "description": "Golden Headband Relic edition tempered glass artwork.",
+      "image": "/products/wukong-golden-headband.jpg",
+      "isCustomizable": false,
+      "isFrame": true,
+      "frameMaterial": "Glass"
+    },
+    {
+      "id": "prod-1786260509143",
+      "name": "Celestial Anime Moonlight Landscape Frame",
+      "slug": "celestial-anime-moonlight-landscape-frame",
+      "categoryId": "anime",
+      "price": 949,
+      "originalPrice": 1349,
+      "stock": 30,
+      "rating": 5,
+      "reviewsCount": 34,
+      "description": "Luminous moonlight celestial night sky acrylic glass poster.",
+      "image": "/products/celestial-anime-moonlight.jpg",
+      "isCustomizable": false,
+      "isFrame": true,
+      "frameMaterial": "Acrylic"
+    },
+    {
+      "id": "prod-6",
+      "name": "Sacred Shri Ram Darbar Gold Foil Glass Frame",
+      "slug": "shri-ram-darbar-gold-foil-glass-frame",
+      "categoryId": "religious",
+      "price": 1299,
+      "originalPrice": 1899,
+      "stock": 40,
+      "rating": 5,
+      "reviewsCount": 56,
+      "description": "Divine gold embossed 3D glass print of Lord Ram, Sita, Lakshman & Hanuman with polished teak finish.",
+      "image": "https://images.unsplash.com/photo-1609137144813-7d9921338f24?auto=format&fit=crop&w=800&q=80",
+      "isCustomizable": false,
+      "isFrame": true,
+      "frameMaterial": "Gold Foil & Teak Wood"
+    },
+    {
+      "id": "prod-7",
+      "name": "Radha Krishna Devotional Acrylic Wall Print",
+      "slug": "radha-krishna-devotional-acrylic-wall-print",
+      "categoryId": "religious",
+      "price": 1149,
+      "originalPrice": 1649,
+      "stock": 22,
+      "rating": 4.9,
+      "reviewsCount": 31,
+      "description": "Eternal Love Radha Krishna glowing acrylic wall frame with scratch-resistant coat.",
+      "image": "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80",
+      "isCustomizable": false,
+      "isFrame": true,
+      "frameMaterial": "Acrylic Glass"
+    },
+    {
+      "id": "prod-8",
+      "name": "Tower of God - Bam & Khun Manwha Glass Art",
+      "slug": "tower-of-god-bam-khun-manwha-glass-art",
+      "categoryId": "manwha",
+      "price": 949,
+      "originalPrice": 1399,
+      "stock": 12,
+      "rating": 4.8,
+      "reviewsCount": 14,
+      "description": "Korean Webtoon & Manwha character glass poster print.",
+      "image": "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80",
+      "isCustomizable": false,
+      "isFrame": true,
+      "frameMaterial": "Glass"
+    },
+    {
+      "id": "prod-9",
+      "name": "Custom Heat-Sensitive Magic Photo Mug",
+      "slug": "custom-heat-sensitive-magic-photo-mug",
+      "categoryId": "custom-gifts",
+      "price": 499,
+      "originalPrice": 799,
+      "stock": 50,
+      "rating": 4.9,
+      "reviewsCount": 88,
+      "description": "Black ceramic mug that reveals your custom photo when hot liquid is poured.",
+      "image": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80",
+      "isCustomizable": true,
+      "isFrame": false,
+      "frameMaterial": "Ceramic"
+    },
+    {
+      "id": "prod-10",
+      "name": "Customized Acrylic Keychain Set (Pack of 3)",
+      "slug": "customized-acrylic-keychain-set",
+      "categoryId": "custom-gifts",
+      "price": 299,
+      "originalPrice": 499,
+      "stock": 100,
+      "rating": 4.8,
+      "reviewsCount": 65,
+      "description": "Personalized double-sided acrylic photo keychains with stainless steel ring.",
+      "image": "https://images.unsplash.com/photo-1589782182703-2aaa69037b5b?auto=format&fit=crop&w=800&q=80",
+      "isCustomizable": true,
+      "isFrame": false,
+      "frameMaterial": "Acrylic"
     }
   ],
   "mainPage": {
@@ -159,6 +369,8 @@
       "title": "Curate Your Space with Bespoke Framing.",
       "subtitle": "Museum-quality bespoke wood, metal & floating acrylic frames designed to elevate your memories. Handcrafted precision meets digital photo studio.",
       "bgImage": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80",
+      "videoUrl": "",
+      "videoEnabled": false,
       "primaryCtaText": "🎨 Launch Frame Studio",
       "primaryCtaLink": "frame-studio",
       "secondaryCtaText": "📸 Passport Photo Studio",
@@ -242,6 +454,16 @@
       "minSpend": 1499,
       "expiryDate": "2027-12-31",
       "usageCount": 8,
+      "isActive": true
+    },
+    {
+      "id": "coup-3",
+      "code": "GLASS100",
+      "discountType": "fixed",
+      "discountValue": 100,
+      "minSpend": 999,
+      "expiryDate": "2027-12-31",
+      "usageCount": 5,
       "isActive": true
     }
   ],

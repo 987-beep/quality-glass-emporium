@@ -71,6 +71,36 @@ export function AdminLayout({ user, token, onLogout, setActivePage }) {
         {/* Action Controls */}
         <div className="pt-4 border-t border-outline-variant space-y-2 text-xs">
           <button
+            onClick={() => {
+              try {
+                const backup = {
+                  products: JSON.parse(localStorage.getItem('qge_custom_products') || '[]'),
+                  categories: JSON.parse(localStorage.getItem('qge_custom_categories') || '[]'),
+                  banners: JSON.parse(localStorage.getItem('qge_custom_banners') || '[]'),
+                  coupons: JSON.parse(localStorage.getItem('qge_custom_coupons') || '[]'),
+                  mainPage: JSON.parse(localStorage.getItem('qge_main_page') || '{}'),
+                  paymentConfig: JSON.parse(localStorage.getItem('qge_payment_config') || '{}'),
+                  settings: JSON.parse(localStorage.getItem('qge_store_settings') || '{}'),
+                  orders: JSON.parse(localStorage.getItem('qge_custom_orders') || '[]'),
+                  reviews: JSON.parse(localStorage.getItem('qge_custom_reviews') || '[]')
+                };
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `quality_glass_emporium_backup_${Date.now()}.json`;
+                a.click();
+              } catch (e) {
+                alert('Export notice: ' + e.message);
+              }
+            }}
+            className="w-full text-left px-3 py-2 rounded bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 flex items-center space-x-2 font-bold"
+          >
+            <span className="material-symbols-outlined text-base">download</span>
+            <span>Export Data Backup JSON</span>
+          </button>
+
+          <button
             onClick={() => setActivePage('home')}
             className="w-full text-left px-3 py-2 rounded bg-surface-container-low text-primary border border-outline-variant hover:border-primary flex items-center space-x-2 font-bold"
           >

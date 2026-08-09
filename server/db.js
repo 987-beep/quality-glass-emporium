@@ -475,16 +475,76 @@ function saveDynamicReviews(revs) {
 
 const loadedSettings = loadDynamicSettings();
 
+function loadMasterDataFile() {
+  try {
+    if (fs.existsSync(dataMasterJsonPath)) {
+      const raw = fs.readFileSync(dataMasterJsonPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch {}
+  return null;
+}
+
+const masterFile = loadMasterDataFile();
+
 // Memory Data Store for High-Performance Fallback
 const memoryStore = {
-  products: [...defaultProducts, ...dynamicAdminProducts],
-  categories: loadDynamicCategories(),
-  banners: loadDynamicBanners(),
-  users: [...defaultUsers, ...dynamicRegisteredUsers],
-  orders: loadDynamicOrders(),
-  coupons: loadDynamicCoupons(),
-  reviews: loadDynamicReviews(),
-  siteSettings: loadedSettings?.siteSettings || {
+  products: masterFile?.products && masterFile.products.length > 0
+    ? masterFile.products.map(p => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug || p.id,
+        category_id: p.categoryId || p.category_id || 'photo-frames',
+        price: parseFloat(p.price || 0),
+        original_price: parseFloat(p.originalPrice || p.original_price || p.price || 0),
+        stock: parseInt(p.stock || 20, 10),
+        rating: parseFloat(p.rating || 5.0),
+        reviews_count: parseInt(p.reviewsCount || p.reviews_count || 0, 10),
+        description: p.description || '',
+        image: p.image || '',
+        is_customizable: Boolean(p.isCustomizable !== undefined ? p.isCustomizable : p.is_customizable),
+        is_frame: Boolean(p.isFrame !== undefined ? p.isFrame : p.is_frame),
+        frame_material: p.frameMaterial || p.frame_material || 'Natural Wood',
+        display_order: p.display_order || 1,
+        created_at: p.createdAt || p.created_at || new Date().toISOString()
+      }))
+    : [...defaultProducts, ...dynamicAdminProducts],
+
+  categories: masterFile?.categories && masterFile.categories.length > 0
+    ? masterFile.categories
+    : loadDynamicCategories(),
+
+  banners: masterFile?.banners && masterFile.banners.length > 0
+    ? masterFile.banners
+    : loadDynamicBanners(),
+
+  users: masterFile?.users && masterFile.users.length > 0
+    ? masterFile.users
+    : [...defaultUsers, ...dynamicRegisteredUsers],
+
+  orders: masterFile?.orders || loadDynamicOrders(),
+  coupons: masterFile?.coupons || loadDynamicCoupons(),
+  reviews: masterFile?.reviews || loadDynamicReviews(),
+
+  siteSettings: loadedSettings?.siteSettings || (masterFile?.settings ? {
+    id: 1,
+    store_name: masterFile.settings.storeName || 'Quality Glass Emporium',
+    tagline: masterFile.settings.tagline || 'Bespoke Framing, Photo Studio & Customized Gifts',
+    email: masterFile.settings.email || 'contact@qualityglassemporium.com',
+    phone: masterFile.settings.phone || '+91 94150 12345',
+    address: masterFile.settings.address || 'Belliganj Malik Mau Road, Near Hotel Ganesh, PNT Colony, Raebareli-229001, Uttar Pradesh',
+    currency: masterFile.settings.currency || '₹',
+    logo: masterFile.settings.logo || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=400&q=80',
+    meta_title: masterFile.settings.metaTitle || 'Quality Glass Emporium | Custom Frames, Passport Studio & Gifts',
+    meta_description: masterFile.settings.metaDescription || 'Bespoke photo frames, acrylic sheets, canvas prints, passport photos, photo lamps, custom mugs & gifts in Raebareli.',
+    meta_keywords: masterFile.settings.metaKeywords || 'photo frames, acrylic frames, canvas prints, passport photos, photo studio, custom gifts, photo lamps, mugs, keychains, Raebareli',
+    hero_config: JSON.stringify(masterFile.mainPage?.hero || {}),
+    promo_config: JSON.stringify(masterFile.mainPage?.promo || {}),
+    announcement_bar: JSON.stringify(masterFile.mainPage?.announcementBar || {}),
+    section_headlines: JSON.stringify(masterFile.mainPage?.sectionHeadlines || {}),
+    features: JSON.stringify(masterFile.mainPage?.features || [])
+  } : {
     id: 1,
     store_name: 'Quality Glass Emporium',
     tagline: 'Bespoke Framing, Photo Studio & Customized Gifts',
@@ -501,8 +561,23 @@ const memoryStore = {
     announcement_bar: '{}',
     section_headlines: '{}',
     features: '[]'
-  },
-  paymentSettings: loadedSettings?.paymentSettings || {
+  }),
+
+  paymentSettings: loadedSettings?.paymentSettings || (masterFile?.paymentConfig ? {
+    id: 1,
+    qr_code_enabled: masterFile.paymentConfig.qrCode?.enabled ? 1 : 0,
+    upi_id: masterFile.paymentConfig.qrCode?.upiId || 'qualityglass@upi',
+    account_holder: masterFile.paymentConfig.qrCode?.accountHolder || 'Quality Glass Emporium',
+    qr_image_url: masterFile.paymentConfig.qrCode?.qrImageUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium',
+    qr_instructions: masterFile.paymentConfig.qrCode?.instructions || '',
+    bank_transfer_enabled: masterFile.paymentConfig.bankTransfer?.enabled ? 1 : 0,
+    bank_name: masterFile.paymentConfig.bankTransfer?.bankName || 'State Bank of India',
+    account_number: masterFile.paymentConfig.bankTransfer?.accountNumber || '389201004921',
+    ifsc_code: masterFile.paymentConfig.bankTransfer?.ifscCode || 'SBIN0000465',
+    branch: masterFile.paymentConfig.bankTransfer?.branch || 'Raebareli Main Branch',
+    bank_instructions: masterFile.paymentConfig.bankTransfer?.instructions || '',
+    cod_enabled: masterFile.paymentConfig.cod?.enabled ? 1 : 0
+  } : {
     id: 1,
     qr_code_enabled: 1,
     upi_id: 'qualityglass@upi',
@@ -516,21 +591,35 @@ const memoryStore = {
     branch: 'Raebareli Main Branch',
     bank_instructions: 'Transfer total order amount via IMPS / NEFT / RTGS to store bank account. Enter 12-digit Bank UTR reference number and upload screenshot.',
     cod_enabled: 1
-  },
-  shippingSettings: loadedSettings?.shippingSettings || {
+  }),
+
+  shippingSettings: loadedSettings?.shippingSettings || (masterFile?.settings ? {
+    id: 1,
+    free_shipping_threshold: masterFile.settings.freeShippingThreshold || 999,
+    flat_shipping_rate: masterFile.settings.flatShippingRate || 79,
+    express_delivery_rate: masterFile.settings.expressDeliveryRate || 149,
+    enable_local_pickup: 1,
+    estimated_delivery_days: '2-4 Business Days'
+  } : {
     id: 1,
     free_shipping_threshold: 999,
     flat_shipping_rate: 79,
     express_delivery_rate: 149,
     enable_local_pickup: 1,
     estimated_delivery_days: '2-4 Business Days'
-  },
-  taxSettings: loadedSettings?.taxSettings || {
+  }),
+
+  taxSettings: loadedSettings?.taxSettings || (masterFile?.settings ? {
+    id: 1,
+    tax_rate_percentage: masterFile.settings.taxRatePercentage || 18,
+    include_tax_in_price: 1,
+    gstin_number: '09AAAFQ1234A1Z5'
+  } : {
     id: 1,
     tax_rate_percentage: 18,
     include_tax_in_price: 1,
     gstin_number: '09AAAFQ1234A1Z5'
-  }
+  })
 };
 
 const dataMasterJsonPath = path.join(__dirname, 'data.json');

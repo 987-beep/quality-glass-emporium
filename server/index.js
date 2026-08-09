@@ -1288,22 +1288,49 @@ app.put('/api/admin/settings', authMiddleware, adminOnlyMiddleware, async (req, 
 
     if (flatShippingRate !== undefined || freeShippingThreshold !== undefined) {
       await query(
-        `UPDATE shipping_settings SET
-          flat_shipping_rate = COALESCE(?, flat_shipping_rate),
-          free_shipping_threshold = COALESCE(?, free_shipping_threshold)
-         WHERE id = 1`,
-        [flatShippingRate !== undefined ? parseFloat(flatShippingRate) : null, freeShippingThreshold !== undefined ? parseFloat(freeShippingThreshold) : null]
+        `UPDATE shipping_settings SET flat_shipping_rate = ?, free_shipping_threshold = ? WHERE id = 1`,
+        [flatShippingRate !== undefined ? flatShippingRate : null, freeShippingThreshold !== undefined ? freeShippingThreshold : null]
       );
     }
 
     if (taxRatePercentage !== undefined) {
       await query(
         `UPDATE tax_settings SET tax_rate_percentage = ? WHERE id = 1`,
-        [parseFloat(taxRatePercentage)]
+        [taxRatePercentage !== undefined ? taxRatePercentage : null]
       );
     }
 
     res.json({ success: true, message: 'Settings updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Master Full Store JSON Export Endpoint
+app.get('/api/master-data', async (req, res) => {
+  try {
+    const dataPath = path.join(__dirname, 'data.json');
+    if (fs.existsSync(dataPath)) {
+      const raw = fs.readFileSync(dataPath, 'utf8');
+      return res.json(JSON.parse(raw));
+    }
+    res.json({});
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Master Full Store JSON Import & Sync Endpoint
+app.post('/api/admin/sync-master', authMiddleware, adminOnlyMiddleware, async (req, res) => {
+  try {
+    const masterObj = req.body;
+    if (masterObj && typeof masterObj === 'object') {
+      const dataPath = path.join(__dirname, 'data.json');
+      fs.writeFileSync(dataPath, JSON.stringify(masterObj, null, 2), 'utf8');
+      saveMasterDataJson();
+      return res.json({ success: true, message: 'Master store state synchronized successfully' });
+    }
+    res.status(400).json({ error: 'Invalid master object' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
