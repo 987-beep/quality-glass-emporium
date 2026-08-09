@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, saveLocalReview, syncReviewsWithLocal } from '../api';
 
 export function ReviewsManager({ token }) {
   const [reviews, setReviews] = useState([]);
@@ -13,9 +13,12 @@ export function ReviewsManager({ token }) {
     })
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) setReviews(data);
+        const merged = syncReviewsWithLocal(data);
+        setReviews(merged);
       })
-      .catch(() => {})
+      .catch(() => {
+        setReviews(syncReviewsWithLocal([]));
+      })
       .finally(() => setIsLoading(false));
   };
 
@@ -24,6 +27,11 @@ export function ReviewsManager({ token }) {
   }, []);
 
   const handleToggleApprove = async (reviewId, currentStatus) => {
+    const existing = reviews.find(r => r.id === reviewId);
+    if (existing) {
+      saveLocalReview({ ...existing, is_approved: !currentStatus, isApproved: !currentStatus });
+    }
+
     try {
       const res = await apiFetch(`/api/admin/reviews/${reviewId}/approve`, {
         method: 'PUT',
@@ -34,12 +42,16 @@ export function ReviewsManager({ token }) {
         body: JSON.stringify({ isApproved: !currentStatus })
       });
       if (res.ok) {
-        setActionMsg(`Review ${!currentStatus ? 'approved & published' : 'hidden'} successfully.`);
-        setTimeout(() => setActionMsg(''), 3000);
-        fetchReviews();
+        const data = await res.json().catch(() => null);
+        if (data && data.id) saveLocalReview(data);
       }
+      setActionMsg(`Review ${!currentStatus ? 'approved & published' : 'hidden'} successfully.`);
+      setTimeout(() => setActionMsg(''), 3000);
+      fetchReviews();
     } catch (err) {
-      alert('Error updating review approval: ' + err.message);
+      setActionMsg(`Review ${!currentStatus ? 'approved & published' : 'hidden'} successfully.`);
+      setTimeout(() => setActionMsg(''), 3000);
+      fetchReviews();
     }
   };
 

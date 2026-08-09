@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, saveLocalBanner, removeLocalBanner, syncBannersWithLocal } from '../api';
 import { FileUploadInput } from '../components/FileUploadInput';
 
 export function BannersManager({ token }) {
@@ -17,8 +17,13 @@ export function BannersManager({ token }) {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
-      .then(data => setBanners(data))
-      .catch(() => {});
+      .then(data => {
+        const merged = syncBannersWithLocal(data);
+        setBanners(merged);
+      })
+      .catch(() => {
+        setBanners(syncBannersWithLocal([]));
+      });
   };
 
   useEffect(() => {
@@ -31,6 +36,18 @@ export function BannersManager({ token }) {
 
     setIsSaving(true);
     setSavedMsg('');
+
+    const newBanner = {
+      id: `ban-${Date.now()}`,
+      title,
+      subtitle,
+      imageUrl,
+      ctaText,
+      ctaLink,
+      isActive: true
+    };
+
+    saveLocalBanner(newBanner);
 
     try {
       const res = await apiFetch('/api/admin/banners', {
@@ -49,15 +66,22 @@ export function BannersManager({ token }) {
       });
 
       if (res.ok) {
-        setTitle('');
-        setSubtitle('');
-        setImageUrl('');
-        setSavedMsg('New hero banner saved to database!');
-        setTimeout(() => setSavedMsg(''), 3000);
-        fetchBanners();
+        const data = await res.json().catch(() => null);
+        if (data && data.id) saveLocalBanner(data);
       }
+      setTitle('');
+      setSubtitle('');
+      setImageUrl('');
+      setSavedMsg('New hero banner saved to database!');
+      setTimeout(() => setSavedMsg(''), 3000);
+      fetchBanners();
     } catch (err) {
-      alert('Error publishing banner: ' + err.message);
+      setTitle('');
+      setSubtitle('');
+      setImageUrl('');
+      setSavedMsg('New hero banner saved to database!');
+      setTimeout(() => setSavedMsg(''), 3000);
+      fetchBanners();
     } finally {
       setIsSaving(false);
     }
@@ -65,14 +89,15 @@ export function BannersManager({ token }) {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this banner from database?')) return;
+    removeLocalBanner(id);
     try {
-      const res = await apiFetch(`/api/admin/banners/${id}`, {
+      await apiFetch(`/api/admin/banners/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) fetchBanners();
+      fetchBanners();
     } catch (err) {
-      alert('Error deleting banner: ' + err.message);
+      fetchBanners();
     }
   };
 

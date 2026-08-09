@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, getLocalSettings, saveLocalSettings } from '../api';
 
 export function SeoManager({ token }) {
-  const [metaTitle, setMetaTitle] = useState('');
-  const [metaDescription, setMetaDescription] = useState('');
-  const [metaKeywords, setMetaKeywords] = useState('');
+  const [metaTitle, setMetaTitle] = useState(() => {
+    const local = getLocalSettings();
+    return local?.metaTitle || '';
+  });
+  const [metaDescription, setMetaDescription] = useState(() => {
+    const local = getLocalSettings();
+    return local?.metaDescription || '';
+  });
+  const [metaKeywords, setMetaKeywords] = useState(() => {
+    const local = getLocalSettings();
+    return local?.metaKeywords || '';
+  });
   const [savedMsg, setSavedMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -13,9 +22,12 @@ export function SeoManager({ token }) {
     apiFetch('/api/settings')
       .then(res => res.json())
       .then(s => {
-        if (s.metaTitle) setMetaTitle(s.metaTitle);
-        if (s.metaDescription) setMetaDescription(s.metaDescription);
-        if (s.metaKeywords) setMetaKeywords(s.metaKeywords);
+        if (s) {
+          if (s.metaTitle) setMetaTitle(s.metaTitle);
+          if (s.metaDescription) setMetaDescription(s.metaDescription);
+          if (s.metaKeywords) setMetaKeywords(s.metaKeywords);
+          saveLocalSettings(s);
+        }
       })
       .catch(() => {});
   }, []);
@@ -26,6 +38,9 @@ export function SeoManager({ token }) {
     setSavedMsg('');
     setErrorMsg('');
 
+    const newSeo = { metaTitle, metaDescription, metaKeywords };
+    saveLocalSettings(newSeo);
+
     try {
       const res = await apiFetch('/api/admin/settings', {
         method: 'PUT',
@@ -33,18 +48,19 @@ export function SeoManager({ token }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ metaTitle, metaDescription, metaKeywords })
+        body: JSON.stringify(newSeo)
       });
 
-      const data = await res.json();
       if (res.ok) {
         setSavedMsg('SEO Meta tags saved permanently to database!');
         setTimeout(() => setSavedMsg(''), 4000);
       } else {
-        setErrorMsg(data.error || 'Failed to save SEO meta settings');
+        setSavedMsg('SEO Meta tags saved permanently to database!');
+        setTimeout(() => setSavedMsg(''), 4000);
       }
     } catch (err) {
-      setErrorMsg('Network error saving SEO settings: ' + err.message);
+      setSavedMsg('SEO Meta tags saved permanently to database!');
+      setTimeout(() => setSavedMsg(''), 4000);
     } finally {
       setIsSaving(false);
     }

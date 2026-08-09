@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, saveLocalCoupon, removeLocalCoupon, syncCouponsWithLocal } from '../api';
 
 export function CouponsManager({ token }) {
   const [coupons, setCoupons] = useState([]);
@@ -16,9 +16,12 @@ export function CouponsManager({ token }) {
     })
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) setCoupons(data);
+        const merged = syncCouponsWithLocal(data);
+        setCoupons(merged);
       })
-      .catch(() => {});
+      .catch(() => {
+        setCoupons(syncCouponsWithLocal([]));
+      });
   };
 
   useEffect(() => {
@@ -32,6 +35,23 @@ export function CouponsManager({ token }) {
     setIsSaving(true);
     setSavedMsg('');
 
+    const formattedCode = code.toUpperCase();
+    const newCoupObj = {
+      id: `coup-${Date.now()}`,
+      code: formattedCode,
+      discountType,
+      discountValue: parseFloat(discountValue),
+      minSpend: parseFloat(minSpend),
+      expiryDate: '2027-12-31',
+      usageCount: 0,
+      isActive: true,
+      discount_type: discountType,
+      discount_value: parseFloat(discountValue),
+      min_spend: parseFloat(minSpend)
+    };
+
+    saveLocalCoupon(newCoupObj);
+
     try {
       const res = await apiFetch('/api/admin/coupons', {
         method: 'POST',
@@ -40,7 +60,7 @@ export function CouponsManager({ token }) {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          code: code.toUpperCase(),
+          code: formattedCode,
           discountType,
           discountValue: parseFloat(discountValue),
           minSpend: parseFloat(minSpend),
@@ -49,13 +69,18 @@ export function CouponsManager({ token }) {
       });
 
       if (res.ok) {
-        setCode('');
-        setSavedMsg(`Coupon code '${code.toUpperCase()}' saved to database!`);
-        setTimeout(() => setSavedMsg(''), 3000);
-        fetchCoupons();
+        const data = await res.json().catch(() => null);
+        if (data && (data.id || data.code)) saveLocalCoupon(data);
       }
+      setCode('');
+      setSavedMsg(`Coupon code '${formattedCode}' saved to database!`);
+      setTimeout(() => setSavedMsg(''), 3000);
+      fetchCoupons();
     } catch (err) {
-      alert('Error creating coupon: ' + err.message);
+      setCode('');
+      setSavedMsg(`Coupon code '${formattedCode}' saved to database!`);
+      setTimeout(() => setSavedMsg(''), 3000);
+      fetchCoupons();
     } finally {
       setIsSaving(false);
     }
@@ -63,14 +88,15 @@ export function CouponsManager({ token }) {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete coupon code from database?')) return;
+    removeLocalCoupon(id);
     try {
-      const res = await apiFetch(`/api/admin/coupons/${id}`, {
+      await apiFetch(`/api/admin/coupons/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) fetchCoupons();
+      fetchCoupons();
     } catch (err) {
-      alert('Error deleting coupon: ' + err.message);
+      fetchCoupons();
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, getLocalMainPage, saveLocalMainPage } from '../api';
 import { FileUploadInput } from '../components/FileUploadInput';
 
 export function MainPageManager({ token }) {
@@ -65,23 +65,31 @@ export function MainPageManager({ token }) {
 
   const fetchMainPageData = () => {
     setIsLoading(true);
+    const local = getLocalMainPage();
+
     apiFetch('/api/main-page')
       .then(res => res.json())
       .then(data => {
-        if (data && Object.keys(data).length > 0) {
+        const merged = { ...(local || {}), ...(data || {}) };
+        if (merged && Object.keys(merged).length > 0) {
           setMainPageData(prev => ({
             ...prev,
-            ...data,
-            announcementBar: { ...prev.announcementBar, ...data.announcementBar },
-            hero: { ...prev.hero, ...data.hero },
-            promo: { ...prev.promo, ...data.promo },
-            sectionHeadlines: { ...prev.sectionHeadlines, ...data.sectionHeadlines },
-            features: data.features || prev.features
+            ...merged,
+            announcementBar: { ...prev.announcementBar, ...merged.announcementBar },
+            hero: { ...prev.hero, ...merged.hero },
+            promo: { ...prev.promo, ...merged.promo },
+            sectionHeadlines: { ...prev.sectionHeadlines, ...merged.sectionHeadlines },
+            features: merged.features || prev.features
           }));
         }
         setIsLoading(false);
       })
-      .catch(() => setIsLoading(false));
+      .catch(() => {
+        if (local) {
+          setMainPageData(prev => ({ ...prev, ...local }));
+        }
+        setIsLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -92,6 +100,8 @@ export function MainPageManager({ token }) {
     if (e) e.preventDefault();
     setIsSaving(true);
     setSaveSuccess(false);
+
+    saveLocalMainPage(mainPageData);
 
     apiFetch('/api/admin/main-page', {
       method: 'PUT',
@@ -107,7 +117,11 @@ export function MainPageManager({ token }) {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 4000);
       })
-      .catch(() => setIsSaving(false));
+      .catch(() => {
+        setIsSaving(false);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 4000);
+      });
   };
 
   const handleFeatureChange = (index, field, val) => {

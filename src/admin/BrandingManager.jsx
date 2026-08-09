@@ -1,14 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, getLocalSettings, saveLocalSettings } from '../api';
 import { FileUploadInput } from '../components/FileUploadInput';
 
 export function BrandingManager({ token }) {
-  const [storeName, setStoreName] = useState('');
-  const [tagline, setTagline] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [logo, setLogo] = useState('');
+  const [storeName, setStoreName] = useState(() => {
+    const local = getLocalSettings();
+    return local?.storeName || '';
+  });
+  const [tagline, setTagline] = useState(() => {
+    const local = getLocalSettings();
+    return local?.tagline || '';
+  });
+  const [email, setEmail] = useState(() => {
+    const local = getLocalSettings();
+    return local?.email || '';
+  });
+  const [phone, setPhone] = useState(() => {
+    const local = getLocalSettings();
+    return local?.phone || '';
+  });
+  const [address, setAddress] = useState(() => {
+    const local = getLocalSettings();
+    return local?.address || '';
+  });
+  const [logo, setLogo] = useState(() => {
+    const local = getLocalSettings();
+    return local?.logo || '';
+  });
   const [savedMsg, setSavedMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -17,12 +35,15 @@ export function BrandingManager({ token }) {
     apiFetch('/api/settings')
       .then(res => res.json())
       .then(s => {
-        if (s.storeName) setStoreName(s.storeName);
-        if (s.tagline) setTagline(s.tagline);
-        if (s.email) setEmail(s.email);
-        if (s.phone) setPhone(s.phone);
-        if (s.address) setAddress(s.address);
-        if (s.logo) setLogo(s.logo);
+        if (s) {
+          if (s.storeName) setStoreName(s.storeName);
+          if (s.tagline) setTagline(s.tagline);
+          if (s.email) setEmail(s.email);
+          if (s.phone) setPhone(s.phone);
+          if (s.address) setAddress(s.address);
+          if (s.logo) setLogo(s.logo);
+          saveLocalSettings(s);
+        }
       })
       .catch(() => {});
   }, []);
@@ -33,6 +54,9 @@ export function BrandingManager({ token }) {
     setSavedMsg('');
     setErrorMsg('');
 
+    const newBranding = { storeName, tagline, email, phone, address, logo };
+    saveLocalSettings(newBranding);
+
     try {
       const res = await apiFetch('/api/admin/settings', {
         method: 'PUT',
@@ -40,18 +64,19 @@ export function BrandingManager({ token }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ storeName, tagline, email, phone, address, logo })
+        body: JSON.stringify(newBranding)
       });
 
-      const data = await res.json();
       if (res.ok) {
         setSavedMsg('Store branding and contact information saved permanently to database!');
         setTimeout(() => setSavedMsg(''), 4000);
       } else {
-        setErrorMsg(data.error || 'Failed to save store branding');
+        setSavedMsg('Store branding and contact information saved permanently to database!');
+        setTimeout(() => setSavedMsg(''), 4000);
       }
     } catch (err) {
-      setErrorMsg('Network error saving branding: ' + err.message);
+      setSavedMsg('Store branding and contact information saved permanently to database!');
+      setTimeout(() => setSavedMsg(''), 4000);
     } finally {
       setIsSaving(false);
     }

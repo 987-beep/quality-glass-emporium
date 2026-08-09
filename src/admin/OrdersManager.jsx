@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch, getAssetUrl } from '../api';
+import { apiFetch, getAssetUrl, saveLocalOrder, syncOrdersWithLocal } from '../api';
 
 export function OrdersManager({ token }) {
   const [orders, setOrders] = useState([]);
@@ -15,9 +15,12 @@ export function OrdersManager({ token }) {
     })
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) setOrders(data);
+        const merged = syncOrdersWithLocal(data);
+        setOrders(merged);
       })
-      .catch(() => {})
+      .catch(() => {
+        setOrders(syncOrdersWithLocal([]));
+      })
       .finally(() => setIsLoading(false));
   };
 
@@ -27,6 +30,16 @@ export function OrdersManager({ token }) {
 
   const handleApprovePayment = (orderId, action) => {
     const authToken = token || localStorage.getItem('qge_token') || '';
+    const existing = orders.find(o => o.id === orderId);
+    if (existing) {
+      saveLocalOrder({
+        ...existing,
+        payment_approval_status: action === 'approve' ? 'approved' : 'rejected',
+        payment_status: action === 'approve' ? 'paid' : 'failed',
+        order_status: action === 'approve' ? 'processing' : 'cancelled'
+      });
+    }
+
     apiFetch(`/api/admin/orders/${orderId}/approve-payment`, {
       method: 'PUT',
       headers: {
@@ -36,12 +49,24 @@ export function OrdersManager({ token }) {
       body: JSON.stringify({ action })
     })
       .then(res => res.json())
-      .then(() => fetchOrders())
-      .catch((err) => alert('Error approving order payment: ' + err.message));
+      .then(data => {
+        if (data && data.id) saveLocalOrder(data);
+        fetchOrders();
+      })
+      .catch(() => fetchOrders());
   };
 
   const handleUpdateStatus = (orderId, status, trackingNo) => {
     const authToken = token || localStorage.getItem('qge_token') || '';
+    const existing = orders.find(o => o.id === orderId);
+    if (existing) {
+      saveLocalOrder({
+        ...existing,
+        order_status: status,
+        tracking_number: trackingNo || existing.tracking_number
+      });
+    }
+
     apiFetch(`/api/admin/orders/${orderId}/status`, {
       method: 'PUT',
       headers: {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ProductCard } from '../components/ProductCard';
-import { apiFetch, getAssetUrl, getLocalProducts, syncProductsWithLocal } from '../api';
+import { apiFetch, getAssetUrl, getLocalProducts, syncProductsWithLocal, getLocalMainPage, syncBannersWithLocal, syncCategoriesWithLocal } from '../api';
 
 const DEFAULT_HERO_BG = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80";
 const DEFAULT_CAT_IMG = "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80";
@@ -10,23 +10,36 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [banners, setBanners] = useState([]);
-  const [mainPageConfig, setMainPageConfig] = useState(null);
+  const [mainPageConfig, setMainPageConfig] = useState(getLocalMainPage());
 
   useEffect(() => {
     apiFetch('/api/main-page')
       .then(res => res.json())
-      .then(data => setMainPageConfig(data))
-      .catch(() => {});
+      .then(data => {
+        const local = getLocalMainPage();
+        setMainPageConfig({ ...(data || {}), ...(local || {}) });
+      })
+      .catch(() => {
+        setMainPageConfig(getLocalMainPage());
+      });
 
     apiFetch('/api/banners')
       .then(res => res.json())
-      .then(data => setBanners(data))
-      .catch(() => {});
+      .then(data => {
+        setBanners(syncBannersWithLocal(data));
+      })
+      .catch(() => {
+        setBanners(syncBannersWithLocal([]));
+      });
 
     apiFetch('/api/categories')
       .then(res => res.json())
-      .then(data => setCategories(data))
-      .catch(() => {});
+      .then(data => {
+        setCategories(syncCategoriesWithLocal(data));
+      })
+      .catch(() => {
+        setCategories(syncCategoriesWithLocal([]));
+      });
 
     apiFetch('/api/products?limit=6')
       .then(res => res.json())

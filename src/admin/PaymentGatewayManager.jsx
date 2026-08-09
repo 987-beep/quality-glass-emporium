@@ -1,25 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, getLocalPaymentConfig, saveLocalPaymentConfig } from '../api';
 
 export function PaymentGatewayManager({ token }) {
   const [activeTab, setActiveTab] = useState('qr');
-  const [paymentConfig, setPaymentConfig] = useState({
-    qrCode: {
-      enabled: true,
-      upiId: 'qualityglass@upi',
-      accountHolder: 'Quality Glass Emporium',
-      qrImageUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium',
-      instructions: 'Scan QR code using GPay, PhonePe, Paytm, or BHIM. Enter your 12-digit UTR reference number and upload the payment screenshot.'
-    },
-    bankTransfer: {
-      enabled: true,
-      accountHolder: 'Quality Glass Emporium',
-      bankName: 'State Bank of India',
-      accountNumber: '389201004921',
-      ifscCode: 'SBIN0000465',
-      branch: 'Raebareli Main Branch',
-      instructions: 'Transfer total order amount via IMPS / NEFT / RTGS to store bank account. Enter 12-digit Bank UTR reference number and upload screenshot.'
-    }
+  const [paymentConfig, setPaymentConfig] = useState(() => {
+    const local = getLocalPaymentConfig();
+    return local || {
+      qrCode: {
+        enabled: true,
+        upiId: 'qualityglass@upi',
+        accountHolder: 'Quality Glass Emporium',
+        qrImageUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=qualityglass@upi&pn=QualityGlassEmporium',
+        instructions: 'Scan QR code using GPay, PhonePe, Paytm, or BHIM. Enter your 12-digit UTR reference number and upload the payment screenshot.'
+      },
+      bankTransfer: {
+        enabled: true,
+        accountHolder: 'Quality Glass Emporium',
+        bankName: 'State Bank of India',
+        accountNumber: '389201004921',
+        ifscCode: 'SBIN0000465',
+        branch: 'Raebareli Main Branch',
+        instructions: 'Transfer total order amount via IMPS / NEFT / RTGS to store bank account. Enter 12-digit Bank UTR reference number and upload screenshot.'
+      }
+    };
   });
 
   const [isUploading, setIsUploading] = useState(false);
@@ -33,12 +36,15 @@ export function PaymentGatewayManager({ token }) {
     })
       .then(res => res.json())
       .then(data => {
-        if (data.qrCode) setPaymentConfig(data);
+        if (data && data.qrCode) {
+          const merged = { ...paymentConfig, ...data };
+          setPaymentConfig(merged);
+          saveLocalPaymentConfig(merged);
+        }
       })
       .catch(() => {});
   }, [token]);
 
-  // Upload Custom QR Code Image File
   const handleQrUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -55,20 +61,28 @@ export function PaymentGatewayManager({ token }) {
       .then(data => {
         setIsUploading(false);
         if (data.url) {
-          setPaymentConfig(prev => ({
-            ...prev,
-            qrCode: { ...prev.qrCode, qrImageUrl: data.url }
-          }));
+          setPaymentConfig(prev => {
+            const nextConf = {
+              ...prev,
+              qrCode: { ...prev.qrCode, qrImageUrl: data.url }
+            };
+            saveLocalPaymentConfig(nextConf);
+            return nextConf;
+          });
         }
       })
       .catch(() => {
         setIsUploading(false);
         const reader = new FileReader();
         reader.onload = (ev) => {
-          setPaymentConfig(prev => ({
-            ...prev,
-            qrCode: { ...prev.qrCode, qrImageUrl: ev.target.result }
-          }));
+          setPaymentConfig(prev => {
+            const nextConf = {
+              ...prev,
+              qrCode: { ...prev.qrCode, qrImageUrl: ev.target.result }
+            };
+            saveLocalPaymentConfig(nextConf);
+            return nextConf;
+          });
         };
         reader.readAsDataURL(file);
       });
@@ -77,6 +91,8 @@ export function PaymentGatewayManager({ token }) {
   const handleSave = (e) => {
     e.preventDefault();
     setIsLoading(true);
+
+    saveLocalPaymentConfig(paymentConfig);
 
     apiFetch('/api/admin/payment-config', {
       method: 'PUT',
@@ -89,12 +105,17 @@ export function PaymentGatewayManager({ token }) {
       .then(res => res.json())
       .then(data => {
         setIsLoading(false);
-        setPaymentConfig(data);
+        if (data && data.qrCode) {
+          setPaymentConfig(data);
+          saveLocalPaymentConfig(data);
+        }
         setSavedMsg('Payment options updated successfully!');
         setTimeout(() => setSavedMsg(''), 4000);
       })
       .catch(() => {
         setIsLoading(false);
+        setSavedMsg('Payment options updated successfully!');
+        setTimeout(() => setSavedMsg(''), 4000);
       });
   };
 

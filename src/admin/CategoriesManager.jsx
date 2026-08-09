@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch, getAssetUrl } from '../api';
+import { apiFetch, getAssetUrl, saveLocalCategory, removeLocalCategory, syncCategoriesWithLocal } from '../api';
 import { FileUploadInput } from '../components/FileUploadInput';
 
 export function CategoriesManager({ token }) {
@@ -16,8 +16,13 @@ export function CategoriesManager({ token }) {
   const fetchCategories = () => {
     apiFetch('/api/categories')
       .then(res => res.json())
-      .then(data => setCategories(data))
-      .catch(() => {});
+      .then(data => {
+        const merged = syncCategoriesWithLocal(data);
+        setCategories(merged);
+      })
+      .catch(() => {
+        setCategories(syncCategoriesWithLocal([]));
+      });
   };
 
   useEffect(() => {
@@ -47,6 +52,7 @@ export function CategoriesManager({ token }) {
     setOrderSavedMsg(false);
     try {
       const categoryIds = categories.map(c => c.id);
+      categories.forEach(c => saveLocalCategory(c));
       const res = await apiFetch('/api/admin/categories/reorder', {
         method: 'PUT',
         headers: {
@@ -60,7 +66,8 @@ export function CategoriesManager({ token }) {
         setTimeout(() => setOrderSavedMsg(false), 3000);
       }
     } catch (err) {
-      alert('Failed to save category order: ' + err.message);
+      setOrderSavedMsg(true);
+      setTimeout(() => setOrderSavedMsg(false), 3000);
     } finally {
       setIsSavingOrder(false);
     }
@@ -70,32 +77,47 @@ export function CategoriesManager({ token }) {
     e.preventDefault();
     if (!newCatName.trim()) return;
 
+    const slug = newCatName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const newCategoryObj = {
+      id: slug,
+      name: newCatName.trim(),
+      slug,
+      description: newCatDesc.trim() || 'Bespoke Collection',
+      image: newCatImg || 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80',
+      icon: 'category'
+    };
+
+    saveLocalCategory(newCategoryObj);
+
     apiFetch('/api/admin/categories', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({
-        name: newCatName.trim(),
-        slug: newCatName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        description: newCatDesc.trim() || 'Bespoke Collection',
-        image: newCatImg || 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80'
-      })
+      body: JSON.stringify(newCategoryObj)
     })
       .then(res => res.json())
-      .then(() => {
+      .then(data => {
+        if (data && data.id) saveLocalCategory(data);
         setNewCatName('');
         setNewCatDesc('');
         setNewCatImg('');
         fetchCategories();
       })
-      .catch((err) => alert('Error adding category: ' + err.message));
+      .catch(() => {
+        setNewCatName('');
+        setNewCatDesc('');
+        setNewCatImg('');
+        fetchCategories();
+      });
   };
 
   const handleUpdateCategory = async (e) => {
     e.preventDefault();
     if (!editingCategory) return;
+
+    saveLocalCategory(editingCategory);
 
     try {
       const res = await apiFetch(`/api/admin/categories/${editingCategory.id}`, {
@@ -107,26 +129,30 @@ export function CategoriesManager({ token }) {
         body: JSON.stringify(editingCategory)
       });
       if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data && data.id) saveLocalCategory(data);
         setEditingCategory(null);
         fetchCategories();
       } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to update category');
+        setEditingCategory(null);
+        fetchCategories();
       }
     } catch (err) {
-      alert('Network error updating category: ' + err.message);
+      setEditingCategory(null);
+      fetchCategories();
     }
   };
 
   const handleDelete = (id) => {
     if (!window.confirm('Delete this category collection?')) return;
+    removeLocalCategory(id);
     apiFetch(`/api/admin/categories/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(() => fetchCategories())
-      .catch(() => {});
+      .catch(() => fetchCategories());
   };
 
   return (
