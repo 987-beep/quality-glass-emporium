@@ -18,6 +18,7 @@ dist-ssr/
 # SQLite & Dev testing
 server/*.sqlite
 server/test_persistence.js
+server/test_full_persistence.js
 
 # Editor & OS files
 .vscode/*
