@@ -574,12 +574,12 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, username, password } = req.body;
+    const { name, username, password } = req.body || {};
     if (!name || !username || !password) {
       return res.status(400).json({ error: 'All fields (Name, Username ID, Password) are required' });
     }
 
-    const rawUser = username.trim();
+    const rawUser = String(username).trim();
     if (rawUser.length < 3) {
       return res.status(400).json({ error: 'Username must be at least 3 characters long' });
     }
@@ -587,16 +587,30 @@ app.post('/api/auth/register', async (req, res) => {
     const cleanInput = rawUser.toLowerCase().replace(/^@/, '');
     const formattedUsername = rawUser.startsWith('@') ? rawUser : `@${rawUser}`;
 
-    // Query for existing username
-    const existing = await query(`SELECT id FROM users WHERE LOWER(username) = ?`, [cleanInput]);
-    if (existing && existing.length > 0) {
+    // Fetch existing users to verify username availability
+    let dbUsers = [];
+    try {
+      dbUsers = await query(`SELECT id, username FROM users`);
+    } catch {
+      dbUsers = [];
+    }
+
+    const allUsers = [...defaultUsers, ...(Array.isArray(dbUsers) ? dbUsers : [])];
+
+    const isTaken = allUsers.some(u => {
+      if (!u || !u.username) return false;
+      const normUser = String(u.username).trim().toLowerCase().replace(/^@/, '');
+      return normUser === cleanInput;
+    });
+
+    if (isTaken) {
       return res.status(400).json({ error: 'This Username ID is already taken. Please choose another.' });
     }
 
     const newId = `usr-${Date.now()}`;
     await query(
       `INSERT INTO users (id, name, username, password, role) VALUES (?, ?, ?, ?, 'customer')`,
-      [newId, name, formattedUsername, password]
+      [newId, name, formattedUsername, String(password).trim()]
     );
 
     const token = generateToken({ id: newId, name, username: formattedUsername, role: 'customer' });
