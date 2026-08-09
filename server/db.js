@@ -131,8 +131,7 @@ const defaultProducts = [
 
 export const defaultUsers = [
   { id: "usr-1", name: "Ajmal (Owner)", username: "@OWNERAJMAL69", password: "AJMA6958@", role: "owner" },
-  { id: "usr-2", name: "Kaatya (Developer)", username: "@KAATYA_OG_", password: "KAATYA6547", role: "developer" },
-  { id: "usr-3", name: "Rahul Sharma", username: "@rahul_sharma", password: "password123", role: "customer" }
+  { id: "usr-2", name: "Kaatya (Developer)", username: "@KAATYA_OG_", password: "KAATYA6547", role: "developer" }
 ];
 
 const defaultBanners = [
@@ -374,6 +373,9 @@ export async function initDb() {
     `).catch(() => {});
 
     // --- SEED DEFAULTS ONCE IF EMPTY ---
+    // Clean up sample customer accounts
+    await query(`DELETE FROM users WHERE role = 'customer' OR id = 'usr-3' OR LOWER(username) LIKE '%rahul%'`).catch(() => {});
+
     const existingUsers = await query(`SELECT COUNT(*) as count FROM users`).catch(() => []);
     const uCount = parseInt(existingUsers[0]?.count || 0, 10);
     if (uCount === 0) {
