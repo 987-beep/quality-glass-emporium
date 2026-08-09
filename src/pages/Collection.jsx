@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ProductCard } from '../components/ProductCard';
-import { apiFetch } from '../api';
+import { apiFetch, syncProductsWithLocal } from '../api';
 
 export function Collection({ initialCategory, initialSearch, onAddToCart, onSelectProduct, onOpenFrameStudio }) {
   const [products, setProducts] = useState([]);
@@ -29,11 +29,31 @@ export function Collection({ initialCategory, initialSearch, onAddToCart, onSele
     apiFetch(url)
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) {
-          setProducts(data);
+        const merged = syncProductsWithLocal(data);
+        let filtered = merged;
+        if (selectedCategory && selectedCategory !== 'all') {
+          const cat = selectedCategory.toLowerCase();
+          filtered = filtered.filter(p => 
+            (p.categoryId && p.categoryId.toLowerCase() === cat) || 
+            (p.category_id && p.category_id.toLowerCase() === cat) ||
+            (p.slug && p.slug.toLowerCase() === cat)
+          );
         }
+        setProducts(filtered);
       })
-      .catch(() => {})
+      .catch(() => {
+        const merged = syncProductsWithLocal([]);
+        let filtered = merged;
+        if (selectedCategory && selectedCategory !== 'all') {
+          const cat = selectedCategory.toLowerCase();
+          filtered = filtered.filter(p => 
+            (p.categoryId && p.categoryId.toLowerCase() === cat) || 
+            (p.category_id && p.category_id.toLowerCase() === cat) ||
+            (p.slug && p.slug.toLowerCase() === cat)
+          );
+        }
+        setProducts(filtered);
+      })
       .finally(() => setIsLoading(false));
   }, [selectedCategory, searchQuery, sortOption, onlyCustomizable]);
 

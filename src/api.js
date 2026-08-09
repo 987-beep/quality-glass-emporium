@@ -36,17 +36,55 @@ export function getAssetUrl(relativePath) {
   return `${API_BASE}${relativePath.startsWith('/') ? '' : '/'}${relativePath}`;
 }
 
-// Pass-through helpers for backward compatibility without localStorage override pollution
+// Client-side LocalStorage Persistence for Dynamic Admin Additions
 export function getLocalProducts() {
-  return null;
+  try {
+    const saved = localStorage.getItem('qge_custom_products');
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
 }
 
-export function setLocalProducts() {
-  // No-op: Database is the single source of truth
+export function saveLocalProduct(newOrUpdatedProduct) {
+  if (!newOrUpdatedProduct || !newOrUpdatedProduct.id) return;
+  try {
+    const existing = getLocalProducts();
+    const index = existing.findIndex(p => p.id === newOrUpdatedProduct.id);
+    if (index > -1) {
+      existing[index] = newOrUpdatedProduct;
+    } else {
+      existing.unshift(newOrUpdatedProduct);
+    }
+    localStorage.setItem('qge_custom_products', JSON.stringify(existing));
+  } catch (e) {
+    console.error('Error saving local product:', e);
+  }
+}
+
+export function removeLocalProduct(productId) {
+  if (!productId) return;
+  try {
+    const existing = getLocalProducts().filter(p => p.id !== productId);
+    localStorage.setItem('qge_custom_products', JSON.stringify(existing));
+  } catch (e) {
+    console.error('Error deleting local product:', e);
+  }
 }
 
 export function syncProductsWithLocal(serverProducts) {
-  return Array.isArray(serverProducts) ? serverProducts : [];
+  const serverList = Array.isArray(serverProducts) ? serverProducts : [];
+  const localList = getLocalProducts();
+
+  const map = new Map();
+  serverList.forEach(p => {
+    if (p && p.id) map.set(p.id, p);
+  });
+  localList.forEach(p => {
+    if (p && p.id) map.set(p.id, p);
+  });
+
+  return Array.from(map.values());
 }
 
 export function getLocalCategories() {

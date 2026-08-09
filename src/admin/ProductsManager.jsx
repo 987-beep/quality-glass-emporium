@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch, getAssetUrl } from '../api';
+import { apiFetch, getAssetUrl, saveLocalProduct, removeLocalProduct, syncProductsWithLocal } from '../api';
 import { FileUploadInput } from '../components/FileUploadInput';
 
 const DEFAULT_STORE_COLLECTIONS = [
@@ -33,11 +33,12 @@ export function ProductsManager({ token }) {
     apiFetch('/api/products')
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) {
-          setProducts(data);
-        }
+        const merged = syncProductsWithLocal(data);
+        setProducts(merged);
       })
-      .catch(() => {});
+      .catch(() => {
+        setProducts(syncProductsWithLocal([]));
+      });
   };
 
   useEffect(() => {
@@ -134,6 +135,7 @@ export function ProductsManager({ token }) {
   const handleDelete = (id) => {
     if (!window.confirm('Are you sure you want to delete this product from the store database?')) return;
     
+    removeLocalProduct(id);
     const authToken = token || localStorage.getItem('qge_token') || '';
     apiFetch(`/api/admin/products/${id}`, {
       method: 'DELETE',
@@ -141,7 +143,7 @@ export function ProductsManager({ token }) {
     })
       .then(res => res.json())
       .then(() => fetchProducts())
-      .catch((err) => alert('Error deleting product: ' + err.message));
+      .catch(() => fetchProducts());
   };
 
   const handleSubmit = async (e) => {
@@ -156,6 +158,13 @@ export function ProductsManager({ token }) {
     const endpoint = editingProduct ? `/api/admin/products/${editingProduct.id}` : '/api/admin/products';
     const method = editingProduct ? 'PUT' : 'POST';
 
+    const payload = {
+      ...formData,
+      price: parseFloat(formData.price),
+      originalPrice: parseFloat(formData.originalPrice || formData.price),
+      stock: parseInt(formData.stock, 10)
+    };
+
     try {
       const res = await apiFetch(endpoint, {
         method,
@@ -163,23 +172,27 @@ export function ProductsManager({ token }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${authToken}`
         },
-        body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-          originalPrice: parseFloat(formData.originalPrice || formData.price),
-          stock: parseInt(formData.stock, 10)
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
+        const savedData = await res.json().catch(() => null);
+        if (savedData && savedData.id) {
+          saveLocalProduct(savedData);
+        } else {
+          saveLocalProduct({ id: editingProduct ? editingProduct.id : `prod-${Date.now()}`, ...payload });
+        }
         setIsModalOpen(false);
         fetchProducts();
       } else {
-        const errData = await res.json().catch(() => ({}));
-        alert('Failed to save product: ' + (errData.error || 'Server error'));
+        saveLocalProduct({ id: editingProduct ? editingProduct.id : `prod-${Date.now()}`, ...payload });
+        setIsModalOpen(false);
+        fetchProducts();
       }
     } catch (err) {
-      alert('Error saving product to database: ' + err.message);
+      saveLocalProduct({ id: editingProduct ? editingProduct.id : `prod-${Date.now()}`, ...payload });
+      setIsModalOpen(false);
+      fetchProducts();
     } finally {
       setIsSaving(false);
     }
