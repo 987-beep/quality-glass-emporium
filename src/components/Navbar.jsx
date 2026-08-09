@@ -4,7 +4,7 @@ export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth,
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="w-full bg-background border-b border-outline-variant transition-colors duration-300">
+    <header className="sticky top-0 left-0 right-0 w-full z-50 bg-background/95 backdrop-blur-md border-b border-outline-variant transition-colors duration-300 shadow-md">
       <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-4 flex flex-col items-center justify-center space-y-3">
         
         {/* ROW 1: Brand Name in Attractive Single Line Font & Subtitle Badge */}
