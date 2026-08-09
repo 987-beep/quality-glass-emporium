@@ -74,8 +74,15 @@ export function syncProductsWithLocal(serverProducts) {
   const localList = getLocalProducts();
 
   const map = new Map();
-  localList.forEach(p => { if (p && p.id) map.set(p.id, p); });
-  serverList.forEach(p => { if (p && p.id) map.set(p.id, { ...(map.get(p.id) || {}), ...p }); });
+  // 1. Server items first
+  serverList.forEach(p => { if (p && p.id) map.set(p.id, p); });
+  // 2. Local items SECOND so local admin edits ALWAYS OVERRIDE server data
+  localList.forEach(p => {
+    if (p && p.id) {
+      const serverItem = map.get(p.id);
+      map.set(p.id, { ...(serverItem || {}), ...p });
+    }
+  });
 
   return Array.from(map.values());
 }
@@ -108,8 +115,13 @@ export function syncCategoriesWithLocal(serverCategories) {
   const localList = getLocalCategories();
 
   const map = new Map();
-  localList.forEach(c => { if (c && c.id) map.set(c.id, c); });
-  serverList.forEach(c => { if (c && c.id) map.set(c.id, { ...(map.get(c.id) || {}), ...c }); });
+  serverList.forEach(c => { if (c && c.id) map.set(c.id, c); });
+  localList.forEach(c => {
+    if (c && c.id) {
+      const serverItem = map.get(c.id);
+      map.set(c.id, { ...(serverItem || {}), ...c });
+    }
+  });
 
   return Array.from(map.values());
 }
@@ -121,6 +133,22 @@ export function getLocalMainPage() {
 
 export function saveLocalMainPage(mainPageData) {
   setStorageJSON('qge_main_page', mainPageData);
+}
+
+export function syncMainPageWithLocal(serverMainPage) {
+  const local = getLocalMainPage();
+  if (!local) return serverMainPage || {};
+  if (!serverMainPage) return local;
+
+  return {
+    ...serverMainPage,
+    ...local,
+    hero: { ...(serverMainPage.hero || {}), ...(local.hero || {}) },
+    promo: { ...(serverMainPage.promo || {}), ...(local.promo || {}) },
+    announcementBar: { ...(serverMainPage.announcementBar || {}), ...(local.announcementBar || {}) },
+    sectionHeadlines: { ...(serverMainPage.sectionHeadlines || {}), ...(local.sectionHeadlines || {}) },
+    features: (local.features && local.features.length > 0) ? local.features : (serverMainPage.features || [])
+  };
 }
 
 // 4. BANNERS PERSISTENCE
@@ -151,8 +179,13 @@ export function syncBannersWithLocal(serverBanners) {
   const localList = getLocalBanners();
 
   const map = new Map();
-  localList.forEach(b => { if (b && b.id) map.set(b.id, b); });
-  serverList.forEach(b => { if (b && b.id) map.set(b.id, { ...(map.get(b.id) || {}), ...b }); });
+  serverList.forEach(b => { if (b && b.id) map.set(b.id, b); });
+  localList.forEach(b => {
+    if (b && b.id) {
+      const serverItem = map.get(b.id);
+      map.set(b.id, { ...(serverItem || {}), ...b });
+    }
+  });
 
   return Array.from(map.values());
 }
@@ -166,6 +199,19 @@ export function saveLocalPaymentConfig(config) {
   setStorageJSON('qge_payment_config', config);
 }
 
+export function syncPaymentConfigWithLocal(serverConfig) {
+  const local = getLocalPaymentConfig();
+  if (!local) return serverConfig || {};
+  if (!serverConfig) return local;
+
+  return {
+    ...serverConfig,
+    ...local,
+    qrCode: { ...(serverConfig.qrCode || {}), ...(local.qrCode || {}) },
+    bankTransfer: { ...(serverConfig.bankTransfer || {}), ...(local.bankTransfer || {}) }
+  };
+}
+
 // 6. STORE & SEO SETTINGS PERSISTENCE
 export function getLocalSettings() {
   return getStorageJSON('qge_store_settings', null);
@@ -176,15 +222,27 @@ export function saveLocalSettings(settings) {
   setStorageJSON('qge_store_settings', { ...existing, ...settings });
 }
 
+export function syncSettingsWithLocal(serverSettings) {
+  const local = getLocalSettings();
+  if (!local) return serverSettings || {};
+  if (!serverSettings) return local;
+
+  return {
+    ...serverSettings,
+    ...local
+  };
+}
+
 // 7. COUPONS PERSISTENCE
 export function getLocalCoupons() {
   return getStorageJSON('qge_custom_coupons', []);
 }
 
 export function saveLocalCoupon(coupon) {
-  if (!coupon || !coupon.id) return;
+  if (!coupon || (!coupon.id && !coupon.code)) return;
+  const key = coupon.id || coupon.code;
   const list = getLocalCoupons();
-  const index = list.findIndex(c => c.id === coupon.id || c.code === coupon.code);
+  const index = list.findIndex(c => c.id === key || c.code === key);
   if (index > -1) {
     list[index] = { ...list[index], ...coupon };
   } else {
@@ -204,8 +262,14 @@ export function syncCouponsWithLocal(serverCoupons) {
   const localList = getLocalCoupons();
 
   const map = new Map();
-  localList.forEach(c => { if (c && c.id) map.set(c.id, c); });
-  serverList.forEach(c => { if (c && c.id) map.set(c.id, { ...(map.get(c.id) || {}), ...c }); });
+  serverList.forEach(c => { if (c && (c.id || c.code)) map.set(c.id || c.code, c); });
+  localList.forEach(c => {
+    if (c && (c.id || c.code)) {
+      const key = c.id || c.code;
+      const serverItem = map.get(key);
+      map.set(key, { ...(serverItem || {}), ...c });
+    }
+  });
 
   return Array.from(map.values());
 }
@@ -232,8 +296,13 @@ export function syncOrdersWithLocal(serverOrders) {
   const localList = getLocalOrders();
 
   const map = new Map();
-  localList.forEach(o => { if (o && o.id) map.set(o.id, o); });
-  serverList.forEach(o => { if (o && o.id) map.set(o.id, { ...(map.get(o.id) || {}), ...o }); });
+  serverList.forEach(o => { if (o && o.id) map.set(o.id, o); });
+  localList.forEach(o => {
+    if (o && o.id) {
+      const serverItem = map.get(o.id);
+      map.set(o.id, { ...(serverItem || {}), ...o });
+    }
+  });
 
   return Array.from(map.values());
 }
@@ -260,8 +329,13 @@ export function syncReviewsWithLocal(serverReviews) {
   const localList = getLocalReviews();
 
   const map = new Map();
-  localList.forEach(r => { if (r && r.id) map.set(r.id, r); });
-  serverList.forEach(r => { if (r && r.id) map.set(r.id, { ...(map.get(r.id) || {}), ...r }); });
+  serverList.forEach(r => { if (r && r.id) map.set(r.id, r); });
+  localList.forEach(r => {
+    if (r && r.id) {
+      const serverItem = map.get(r.id);
+      map.set(r.id, { ...(serverItem || {}), ...r });
+    }
+  });
 
   return Array.from(map.values());
 }

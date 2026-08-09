@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ProductCard } from '../components/ProductCard';
-import { apiFetch, getAssetUrl, getLocalProducts, syncProductsWithLocal, getLocalMainPage, syncBannersWithLocal, syncCategoriesWithLocal } from '../api';
+import { apiFetch, getAssetUrl, getLocalProducts, syncProductsWithLocal, getLocalMainPage, syncMainPageWithLocal, syncBannersWithLocal, syncCategoriesWithLocal } from '../api';
 
 const DEFAULT_HERO_BG = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80";
 const DEFAULT_CAT_IMG = "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80";
@@ -16,11 +16,10 @@ export function Home({ setActivePage, onAddToCart, onSelectProduct, onOpenFrameS
     apiFetch('/api/main-page')
       .then(res => res.json())
       .then(data => {
-        const local = getLocalMainPage();
-        setMainPageConfig({ ...(data || {}), ...(local || {}) });
+        setMainPageConfig(syncMainPageWithLocal(data));
       })
       .catch(() => {
-        setMainPageConfig(getLocalMainPage());
+        setMainPageConfig(syncMainPageWithLocal(null));
       });
 
     apiFetch('/api/banners')

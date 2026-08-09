@@ -1,6 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiFetch, getLocalSettings, syncSettingsWithLocal } from '../api';
 
 export function Footer({ setActivePage }) {
+  const [settings, setSettings] = useState(getLocalSettings());
+
+  useEffect(() => {
+    apiFetch('/api/settings')
+      .then(res => res.json())
+      .then(data => setSettings(syncSettingsWithLocal(data)))
+      .catch(() => setSettings(syncSettingsWithLocal(null)));
+  }, []);
+
+  const storeName = settings?.storeName || "Quality Glass Emporium";
+  const tagline = settings?.tagline || "Bespoke Framing, Photo Studio & Customized Gifts";
+  const address = settings?.address || "Belliganj Malik Mau Road, Near Hotel Ganesh, PNT Colony, Raebareli-229001, Uttar Pradesh";
+  const phone = settings?.phone || "+91 94150 12345";
+
   return (
     <footer className="bg-surface-container-highest dark:bg-surface-container-high w-full pt-16 border-t border-outline-variant mt-24">
       <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop grid grid-cols-1 md:grid-cols-4 gap-gutter pb-12">
@@ -11,19 +26,19 @@ export function Footer({ setActivePage }) {
             onClick={() => setActivePage && setActivePage('home')}
             className="font-headline font-bold text-2xl text-primary uppercase text-left tracking-wide"
           >
-            Quality Glass Emporium
+            {storeName}
           </button>
           <p className="font-body-md text-sm text-on-surface-variant max-w-md leading-relaxed">
-            Bespoke picture framing, high-gloss acrylic sheets, photo studio printing, passport photo compliance, custom photo lamps, personalized gifts & glass craftsmanship.
+            {tagline}
           </p>
           <div className="text-xs text-on-surface-variant/80 space-y-1">
             <p className="flex items-center space-x-2">
               <span className="material-symbols-outlined text-sm text-primary">location_on</span>
-              <span>Belliganj Malik Mau Road, Near Hotel Ganesh, PNT Colony, Raebareli-229001, Uttar Pradesh</span>
+              <span>{address}</span>
             </p>
             <p className="flex items-center space-x-2">
               <span className="material-symbols-outlined text-sm text-primary">call</span>
-              <span>+91 94150 12345 / +91 98390 54321</span>
+              <span>{phone}</span>
             </p>
             <p className="flex items-center space-x-2">
               <span className="material-symbols-outlined text-sm text-primary">schedule</span>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiFetch, getLocalSettings, syncSettingsWithLocal } from '../api';
 
 const STORE_COLLECTIONS_NAV = [
   { id: 'all', name: 'All Collections', icon: 'auto_awesome' },
@@ -13,6 +14,17 @@ const STORE_COLLECTIONS_NAV = [
 export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth, onLogout, themeMode, toggleTheme }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collectionsDropdownOpen, setCollectionsDropdownOpen] = useState(false);
+  const [settings, setSettings] = useState(getLocalSettings());
+
+  useEffect(() => {
+    apiFetch('/api/settings')
+      .then(res => res.json())
+      .then(data => setSettings(syncSettingsWithLocal(data)))
+      .catch(() => setSettings(syncSettingsWithLocal(null)));
+  }, []);
+
+  const storeName = settings?.storeName || "Quality Glass Emporium";
+  const tagline = settings?.tagline || "Photo Studio & Bespoke Framing";
 
   return (
     <header className="w-full bg-background border-b border-outline-variant transition-colors duration-300 relative z-50">
@@ -24,10 +36,10 @@ export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth,
             onClick={() => setActivePage('home')}
             className="font-headline font-extrabold text-xl sm:text-2xl md:text-3xl text-primary tracking-widest uppercase hover:opacity-90 transition-opacity whitespace-nowrap drop-shadow-md font-display-lg"
           >
-            Quality Glass Emporium
+            {storeName}
           </button>
           <span className="text-[10px] uppercase bg-surface-container-high text-primary px-3 py-1 rounded border border-outline-variant font-bold tracking-widest whitespace-nowrap shadow-sm">
-            Photo Studio & Bespoke Framing
+            {tagline}
           </span>
         </div>
 

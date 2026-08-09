@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { apiFetch, getLocalOrders, setLocalOrders } from '../api';
+import { apiFetch, getLocalOrders, setLocalOrders, syncPaymentConfigWithLocal, syncSettingsWithLocal, getLocalSettings, getLocalPaymentConfig } from '../api';
 
 export function Checkout({ cartItems, appliedCoupon, onClearCart, setActivePage, token }) {
-  const [paymentConfig, setPaymentConfig] = useState(null);
+  const [paymentConfig, setPaymentConfig] = useState(getLocalPaymentConfig());
+  const [storeSettings, setStoreSettings] = useState(getLocalSettings());
   const [selectedMethod, setSelectedMethod] = useState('qr'); // 'qr' or 'bank'
   const [formData, setFormData] = useState({
     customerName: '',
@@ -27,15 +28,22 @@ export function Checkout({ cartItems, appliedCoupon, onClearCart, setActivePage,
   useEffect(() => {
     apiFetch('/api/payment-config')
       .then(res => res.json())
-      .then(data => setPaymentConfig(data))
-      .catch(() => {});
+      .then(data => setPaymentConfig(syncPaymentConfigWithLocal(data)))
+      .catch(() => setPaymentConfig(syncPaymentConfigWithLocal(null)));
+
+    apiFetch('/api/settings')
+      .then(res => res.json())
+      .then(data => setStoreSettings(syncSettingsWithLocal(data)))
+      .catch(() => setStoreSettings(syncSettingsWithLocal(null)));
   }, []);
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const freeShippingThreshold = 999;
-  const shippingFee = subtotal > freeShippingThreshold ? 0 : 79;
-  const taxAmount = Math.round((subtotal - discount) * 0.18);
+  const freeShippingThreshold = storeSettings?.freeShippingThreshold !== undefined ? storeSettings.freeShippingThreshold : 999;
+  const flatShippingRate = storeSettings?.flatShippingRate !== undefined ? storeSettings.flatShippingRate : 79;
+  const shippingFee = subtotal > freeShippingThreshold ? 0 : flatShippingRate;
+  const taxRatePct = (storeSettings?.taxRatePercentage !== undefined ? storeSettings.taxRatePercentage : 18) / 100;
+  const taxAmount = Math.round((subtotal - discount) * taxRatePct);
   const grandTotal = Math.max(0, subtotal - discount + shippingFee + taxAmount);
 
   // Copy helper

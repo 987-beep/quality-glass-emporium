@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ProductCard } from '../components/ProductCard';
-import { apiFetch, syncProductsWithLocal } from '../api';
+import { apiFetch, syncProductsWithLocal, syncCategoriesWithLocal } from '../api';
 
 export function Collection({ initialCategory, initialSearch, onAddToCart, onSelectProduct, onOpenFrameStudio }) {
   const [products, setProducts] = useState([]);
@@ -15,9 +15,11 @@ export function Collection({ initialCategory, initialSearch, onAddToCart, onSele
     apiFetch('/api/categories')
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) setCategories(data);
+        setCategories(syncCategoriesWithLocal(data));
       })
-      .catch(() => {});
+      .catch(() => {
+        setCategories(syncCategoriesWithLocal([]));
+      });
   }, []);
 
   useEffect(() => {
