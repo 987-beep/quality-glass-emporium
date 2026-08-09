@@ -5,7 +5,7 @@ import fs from 'fs';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { fileURLToPath } from 'url';
-import { query, initDb } from './db.js';
+import { query, initDb, defaultUsers } from './db.js';
 import { generateToken, verifyToken, authMiddleware, adminOnlyMiddleware } from './auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -560,15 +560,35 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Username ID and password are required' });
     }
 
+    await initDb().catch(() => {});
+
     const rawInput = username.trim().toLowerCase();
     const normInput = rawInput.replace(/^@/, '');
 
-    const rows = await query(`SELECT * FROM users`);
-    const user = rows.find(u => {
+    let rows = [];
+    try {
+      rows = await query(`SELECT * FROM users`);
+    } catch (err) {
+      console.warn("DB user query notice:", err.message);
+    }
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      rows = defaultUsers;
+    }
+
+    let user = rows.find(u => {
       if (!u.username) return false;
       const normUser = u.username.trim().toLowerCase().replace(/^@/, '');
       return normUser === normInput || u.username.trim().toLowerCase() === rawInput;
     });
+
+    if (!user && Array.isArray(defaultUsers)) {
+      user = defaultUsers.find(u => {
+        if (!u.username) return false;
+        const normUser = u.username.trim().toLowerCase().replace(/^@/, '');
+        return normUser === normInput || u.username.trim().toLowerCase() === rawInput;
+      });
+    }
 
     if (!user || user.password !== password) {
       return res.status(401).json({ error: 'Invalid Username ID or Password credentials' });

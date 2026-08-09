@@ -25,9 +25,16 @@ export function Auth({ onLoginSuccess, onClose }) {
       body: JSON.stringify(payload)
     })
       .then(async res => {
-        const data = await res.json().catch(() => null);
+        const text = await res.text().catch(() => '');
+        let data = null;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = null;
+        }
+
         if (!data) {
-          throw new Error('Authentication server returned an invalid response. Please verify backend deployment.');
+          throw new Error('Authentication server unavailable or updating. Please try again in a few seconds.');
         }
         return { ok: res.ok, data };
       })

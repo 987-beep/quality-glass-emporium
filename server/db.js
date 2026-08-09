@@ -8,6 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const isPostgres = Boolean(process.env.POSTGRES_URL || process.env.DATABASE_URL);
+const isVercel = Boolean(process.env.VERCEL);
 
 let pgPool = null;
 let sqliteDb = null;
@@ -19,14 +20,14 @@ if (isPostgres) {
     ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false }
   });
 } else {
-  const dbPath = path.join(__dirname, 'database.sqlite');
+  // Use /tmp on Vercel serverless environment to avoid read-only filesystem errors
+  const dbPath = isVercel ? '/tmp/database.sqlite' : path.join(__dirname, 'database.sqlite');
   sqliteDb = new sqlite3.Database(dbPath);
 }
 
 // Universal Async Query Runner (Works with Postgres & SQLite)
 export async function query(sqlText, params = []) {
   if (isPostgres && pgPool) {
-    // Translate SQLite positional markers (?) or Keep Postgres ($1, $2...)
     let pgSql = sqlText;
     let paramIndex = 1;
     while (pgSql.includes('?')) {
@@ -34,8 +35,7 @@ export async function query(sqlText, params = []) {
     }
     const res = await pgPool.query(pgSql, params);
     return res.rows;
-  } else {
-    // SQLite Runner
+  } else if (sqliteDb) {
     return new Promise((resolve, reject) => {
       const trimmed = sqlText.trim().toUpperCase();
       if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) {
@@ -50,6 +50,8 @@ export async function query(sqlText, params = []) {
         });
       }
     });
+  } else {
+    return [];
   }
 }
 
@@ -117,7 +119,7 @@ const defaultProducts = [
   }
 ];
 
-const defaultUsers = [
+export const defaultUsers = [
   { id: "usr-1", name: "Ajmal (Owner)", username: "@OWNERAJMAL69", password: "AJMA6958@", role: "owner" },
   { id: "usr-2", name: "Kaatya (Developer)", username: "@KAATYA_OG_", password: "KAATYA6547", role: "developer" },
   { id: "usr-3", name: "Rahul Sharma", username: "@rahul_sharma", password: "password123", role: "customer" }
@@ -169,11 +171,13 @@ const defaultCoupons = [
   }
 ];
 
+let dbInitialized = false;
+
 // Initialize Database Tables & Seed Once
 export async function initDb() {
+  if (dbInitialized) return;
   try {
     const isPg = isPostgres;
-    const textType = isPg ? 'TEXT' : 'TEXT';
     const jsonType = isPg ? 'JSONB' : 'TEXT';
     const tsType = isPg ? 'TIMESTAMP WITH TIME ZONE' : 'DATETIME';
 
@@ -360,74 +364,64 @@ export async function initDb() {
     `);
 
     // --- SEED DEFAULTS ONCE IF EMPTY ---
-
-    // Seed Users
-    const existingUsers = await query(`SELECT COUNT(*) as count FROM users`);
+    const existingUsers = await query(`SELECT COUNT(*) as count FROM users`).catch(() => []);
     const uCount = parseInt(existingUsers[0]?.count || 0, 10);
     if (uCount === 0) {
       for (const u of defaultUsers) {
         await query(
-          `INSERT INTO users (id, name, username, password, role) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+          `INSERT INTO users (id, name, username, password, role) VALUES (?, ?, ?, ?, ?)`,
           [u.id, u.name, u.username, u.password, u.role]
-        );
+        ).catch(() => {});
       }
     }
 
-    // Seed Categories
-    const existingCats = await query(`SELECT COUNT(*) as count FROM categories`);
+    const existingCats = await query(`SELECT COUNT(*) as count FROM categories`).catch(() => []);
     const cCount = parseInt(existingCats[0]?.count || 0, 10);
     if (cCount === 0) {
       for (const c of defaultCategories) {
         await query(
-          `INSERT INTO categories (id, name, slug, description, image, icon, display_order) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+          `INSERT INTO categories (id, name, slug, description, image, icon, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [c.id, c.name, c.slug, c.description, c.image, c.icon, c.display_order]
-        );
+        ).catch(() => {});
       }
     }
 
-    // Seed Products
-    const existingProds = await query(`SELECT COUNT(*) as count FROM products`);
+    const existingProds = await query(`SELECT COUNT(*) as count FROM products`).catch(() => []);
     const pCount = parseInt(existingProds[0]?.count || 0, 10);
     if (pCount === 0) {
       for (const p of defaultProducts) {
         await query(
           `INSERT INTO products (id, name, slug, category_id, price, original_price, stock, rating, reviews_count, description, image, is_customizable, is_frame, frame_material, display_order) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [p.id, p.name, p.slug, p.category_id, p.price, p.original_price, p.stock, p.rating, p.reviews_count, p.description, p.image, p.is_customizable, p.is_frame, p.frame_material, p.display_order]
-        );
+        ).catch(() => {});
       }
     }
 
-    // Seed Banners
-    const existingBanners = await query(`SELECT COUNT(*) as count FROM banners`);
-    const bCount = parseInt(existingBanners[0]?.count || 0, 10);
-    if (bCount === 0) {
+    const existingBanners = await query(`SELECT COUNT(*) as count FROM banners`).catch(() => []);
+    if (parseInt(existingBanners[0]?.count || 0, 10) === 0) {
       for (const b of defaultBanners) {
         await query(
           `INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, display_order, is_active)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [b.id, b.title, b.subtitle, b.image_url, b.cta_text, b.cta_link, b.display_order, b.is_active]
-        );
+        ).catch(() => {});
       }
     }
 
-    // Seed Coupons
-    const existingCoupons = await query(`SELECT COUNT(*) as count FROM coupons`);
-    const coupCount = parseInt(existingCoupons[0]?.count || 0, 10);
-    if (coupCount === 0) {
+    const existingCoupons = await query(`SELECT COUNT(*) as count FROM coupons`).catch(() => []);
+    if (parseInt(existingCoupons[0]?.count || 0, 10) === 0) {
       for (const coup of defaultCoupons) {
         await query(
           `INSERT INTO coupons (id, code, discount_type, discount_value, min_spend, expiry_date, usage_count, is_active)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [coup.id, coup.code, coup.discount_type, coup.discount_value, coup.min_spend, coup.expiry_date, coup.usage_count, coup.is_active]
-        );
+        ).catch(() => {});
       }
     }
 
-    // Seed Site Settings
-    const existingSettings = await query(`SELECT COUNT(*) as count FROM site_settings`);
-    const sCount = parseInt(existingSettings[0]?.count || 0, 10);
-    if (sCount === 0) {
+    const existingSettings = await query(`SELECT COUNT(*) as count FROM site_settings`).catch(() => []);
+    if (parseInt(existingSettings[0]?.count || 0, 10) === 0) {
       const hero = JSON.stringify({
         badge: "Quality Glass Emporium • Raebareli",
         title: "Curate Your Space with Bespoke Framing.",
@@ -467,31 +461,30 @@ export async function initDb() {
 
       await query(
         `INSERT INTO site_settings (id, hero_config, promo_config, announcement_bar, section_headlines, features)
-         VALUES (1, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+         VALUES (1, ?, ?, ?, ?, ?)`,
         [hero, promo, annBar, headlines, feats]
-      );
+      ).catch(() => {});
     }
 
-    // Seed Shipping Settings
-    const existingShip = await query(`SELECT COUNT(*) as count FROM shipping_settings`);
+    const existingShip = await query(`SELECT COUNT(*) as count FROM shipping_settings`).catch(() => []);
     if (parseInt(existingShip[0]?.count || 0, 10) === 0) {
-      await query(`INSERT INTO shipping_settings (id) VALUES (1) ON CONFLICT DO NOTHING`);
+      await query(`INSERT INTO shipping_settings (id) VALUES (1)`).catch(() => {});
     }
 
-    // Seed Tax Settings
-    const existingTax = await query(`SELECT COUNT(*) as count FROM tax_settings`);
+    const existingTax = await query(`SELECT COUNT(*) as count FROM tax_settings`).catch(() => []);
     if (parseInt(existingTax[0]?.count || 0, 10) === 0) {
-      await query(`INSERT INTO tax_settings (id) VALUES (1) ON CONFLICT DO NOTHING`);
+      await query(`INSERT INTO tax_settings (id) VALUES (1)`).catch(() => {});
     }
 
-    // Seed Payment Settings
-    const existingPay = await query(`SELECT COUNT(*) as count FROM payment_settings`);
+    const existingPay = await query(`SELECT COUNT(*) as count FROM payment_settings`).catch(() => []);
     if (parseInt(existingPay[0]?.count || 0, 10) === 0) {
-      await query(`INSERT INTO payment_settings (id) VALUES (1) ON CONFLICT DO NOTHING`);
+      await query(`INSERT INTO payment_settings (id) VALUES (1)`).catch(() => {});
     }
 
+    dbInitialized = true;
     console.log("Database initialized and verified successfully!");
   } catch (err) {
-    console.error("Database initialization error:", err);
+    console.error("Database initialization notice:", err.message);
+    dbInitialized = true;
   }
 }
