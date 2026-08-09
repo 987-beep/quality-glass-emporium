@@ -149,9 +149,9 @@ const defaultProducts = [
     display_order: 3
   },
   {
-    id: "prod-4",
-    name: "Solo Leveling - Sung Jin-Woo Shadow Monarch Glass Poster",
-    slug: "solo-leveling-sung-jin-woo-glass-poster",
+    id: "prod-1786260237808",
+    name: "Solo Leveling Sung Jin-Woo Shadow Monarch Glass Frame",
+    slug: "solo-leveling-sung-jin-woo-shadow-monarch-glass-frame",
     category_id: "anime",
     price: 999,
     original_price: 1499,
@@ -159,28 +159,96 @@ const defaultProducts = [
     rating: 5.0,
     reviews_count: 15,
     description: "Vibrant HD acrylic glass print featuring Sung Jin-Woo with glowing shadow army aura.",
-    image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80",
+    image: "/products/solo-leveling-shadow-monarch.jpg",
     is_customizable: false,
     is_frame: true,
     frame_material: "Tempered Glass",
     display_order: 4
   },
   {
-    id: "prod-5",
-    name: "Jujutsu Kaisen - Satoru Gojo Domain Expansion Acrylic Frame",
-    slug: "jujutsu-kaisen-satoru-gojo-acrylic-frame",
+    id: "prod-1786260508001",
+    name: "Black Myth Wukong Golden Armor Glass Print",
+    slug: "black-myth-wukong-golden-armor-glass-print",
+    category_id: "anime",
+    price: 1199,
+    original_price: 1699,
+    stock: 18,
+    rating: 5.0,
+    reviews_count: 22,
+    description: "Black Myth Wukong Destined One Golden Armor Premium Framed Glass Art.",
+    image: "/products/wukong-golden-armor.jpg",
+    is_customizable: false,
+    is_frame: true,
+    frame_material: "Tempered Glass",
+    display_order: 5
+  },
+  {
+    id: "prod-1786260508277",
+    name: "Black Myth Wukong Title Edition Glass Frame",
+    slug: "black-myth-wukong-title-edition-glass-frame",
     category_id: "anime",
     price: 1099,
     original_price: 1599,
-    stock: 18,
+    stock: 15,
     rating: 4.9,
-    reviews_count: 29,
-    description: "Satoru Gojo Infinite Void UV acrylic glass block with metallic back layer.",
-    image: "https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=800&q=80",
+    reviews_count: 19,
+    description: "Official Black Myth Wukong Title Edition UV glass print.",
+    image: "/products/black-myth-wukong-title.jpg",
+    is_customizable: false,
+    is_frame: true,
+    frame_material: "Tempered Glass",
+    display_order: 6
+  },
+  {
+    id: "prod-1786260508555",
+    name: "Mythic Mist Mountains Wukong Landscape Print",
+    slug: "mythic-mist-mountains-wukong-landscape-print",
+    category_id: "anime",
+    price: 1049,
+    original_price: 1499,
+    stock: 14,
+    rating: 4.9,
+    reviews_count: 11,
+    description: "Panoramic misty mountain landscape glass frame.",
+    image: "/products/mythic-mist-mountains.jpg",
+    is_customizable: false,
+    is_frame: true,
+    frame_material: "Acrylic Glass",
+    display_order: 7
+  },
+  {
+    id: "prod-1786260508827",
+    name: "Sun Wukong Golden Headband Relic Frame",
+    slug: "sun-wukong-golden-headband-relic-frame",
+    category_id: "anime",
+    price: 999,
+    original_price: 1399,
+    stock: 25,
+    rating: 4.8,
+    reviews_count: 16,
+    description: "Golden Headband Relic edition tempered glass artwork.",
+    image: "/products/wukong-golden-headband.jpg",
+    is_customizable: false,
+    is_frame: true,
+    frame_material: "Glass",
+    display_order: 8
+  },
+  {
+    id: "prod-1786260509143",
+    name: "Celestial Anime Moonlight Landscape Frame",
+    slug: "celestial-anime-moonlight-landscape-frame",
+    category_id: "anime",
+    price: 949,
+    original_price: 1349,
+    stock: 30,
+    rating: 5.0,
+    reviews_count: 34,
+    description: "Luminous moonlight celestial night sky acrylic glass poster.",
+    image: "/products/celestial-anime-moonlight.jpg",
     is_customizable: false,
     is_frame: true,
     frame_material: "Acrylic",
-    display_order: 5
+    display_order: 9
   },
   {
     id: "prod-6",
@@ -197,7 +265,7 @@ const defaultProducts = [
     is_customizable: false,
     is_frame: true,
     frame_material: "Gold Foil & Teak Wood",
-    display_order: 6
+    display_order: 10
   },
   {
     id: "prod-7",
@@ -214,7 +282,7 @@ const defaultProducts = [
     is_customizable: false,
     is_frame: true,
     frame_material: "Acrylic Glass",
-    display_order: 7
+    display_order: 11
   },
   {
     id: "prod-8",
@@ -231,7 +299,7 @@ const defaultProducts = [
     is_customizable: false,
     is_frame: true,
     frame_material: "Glass",
-    display_order: 8
+    display_order: 12
   },
   {
     id: "prod-9",
@@ -248,7 +316,7 @@ const defaultProducts = [
     is_customizable: true,
     is_frame: false,
     frame_material: "Ceramic",
-    display_order: 9
+    display_order: 13
   },
   {
     id: "prod-10",
@@ -265,7 +333,7 @@ const defaultProducts = [
     is_customizable: true,
     is_frame: false,
     frame_material: "Acrylic",
-    display_order: 10
+    display_order: 14
   }
 ];
 
