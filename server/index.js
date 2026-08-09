@@ -981,7 +981,17 @@ app.put('/api/admin/orders/:id/approve-payment', authMiddleware, adminOnlyMiddle
 app.get('/api/admin/coupons', authMiddleware, adminOnlyMiddleware, async (req, res) => {
   try {
     const rows = await query(`SELECT id, code, discount_type as "discountType", discount_value as "discountValue", min_spend as "minSpend", expiry_date as "expiryDate", usage_count as "usageCount", is_active as "isActive" FROM coupons ORDER BY created_at DESC`);
-    res.json(rows);
+    const mapped = (rows || []).map(r => ({
+      id: r.id,
+      code: r.code,
+      discountType: r.discountType || r.discount_type || 'percentage',
+      discountValue: parseFloat(r.discountValue || r.discount_value || 0),
+      minSpend: parseFloat(r.minSpend || r.min_spend || 0),
+      expiryDate: r.expiryDate || r.expiry_date || '2027-12-31',
+      usageCount: parseInt(r.usageCount || r.usage_count || 0, 10),
+      isActive: r.isActive !== undefined ? Boolean(r.isActive) : true
+    }));
+    res.json(mapped);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -989,16 +999,26 @@ app.get('/api/admin/coupons', authMiddleware, adminOnlyMiddleware, async (req, r
 
 app.post('/api/admin/coupons', authMiddleware, adminOnlyMiddleware, async (req, res) => {
   try {
-    const { code, discountType, discountValue, minSpend, expiryDate } = req.body;
-    if (!code) return res.status(400).json({ error: 'Coupon code is required' });
+    const { code, discountType, discountValue, minSpend, expiryDate } = req.body || {};
+    if (!code || !code.trim()) return res.status(400).json({ error: 'Coupon code is required' });
 
+    const cleanCode = code.trim().toUpperCase();
     const id = `coup-${Date.now()}`;
     await query(
-      `INSERT INTO coupons (id, code, discount_type, discount_value, min_spend, expiry_date, usage_count, is_active) VALUES (?, ?, ?, ?, ?, ?, 0, true)`,
-      [id, code.toUpperCase(), discountType || 'percentage', parseFloat(discountValue || 0), parseFloat(minSpend || 0), expiryDate || '2027-12-31']
+      `INSERT INTO coupons (id, code, discount_type, discount_value, min_spend, expiry_date, usage_count, is_active) VALUES (?, ?, ?, ?, ?, ?, 0, 1)`,
+      [id, cleanCode, discountType || 'percentage', parseFloat(discountValue || 0), parseFloat(minSpend || 0), expiryDate || '2027-12-31']
     );
 
-    res.status(201).json({ id, code, discountType, discountValue, minSpend, expiryDate, usageCount: 0, isActive: true });
+    res.status(201).json({
+      id,
+      code: cleanCode,
+      discountType: discountType || 'percentage',
+      discountValue: parseFloat(discountValue || 0),
+      minSpend: parseFloat(minSpend || 0),
+      expiryDate: expiryDate || '2027-12-31',
+      usageCount: 0,
+      isActive: true
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

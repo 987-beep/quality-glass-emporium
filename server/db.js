@@ -206,6 +206,29 @@ function saveDynamicCategories(cats) {
   } catch {}
 }
 
+// Coupons JSON persistence helper
+const defaultCoupons = [
+  { id: "coup-1", code: "WELCOME10", discount_type: "percentage", discount_value: 10, min_spend: 499, expiry_date: "2027-12-31", usage_count: 0, is_active: 1 },
+  { id: "coup-2", code: "GLASS100", discount_type: "fixed", discount_value: 100, min_spend: 999, expiry_date: "2027-12-31", usage_count: 0, is_active: 1 }
+];
+
+const couponsJsonPath = path.join(__dirname, 'coupons_store.json');
+function loadDynamicCoupons() {
+  try {
+    if (fs.existsSync(couponsJsonPath)) {
+      const raw = fs.readFileSync(couponsJsonPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [...defaultCoupons];
+}
+function saveDynamicCoupons(coups) {
+  try {
+    fs.writeFileSync(couponsJsonPath, JSON.stringify(coups, null, 2), 'utf8');
+  } catch {}
+}
+
 // Settings JSON persistence helper
 const settingsJsonPath = path.join(__dirname, 'settings_store.json');
 function loadDynamicSettings() {
@@ -233,7 +256,7 @@ const memoryStore = {
   banners: loadDynamicBanners(),
   users: [...defaultUsers, ...dynamicRegisteredUsers],
   orders: [],
-  coupons: [],
+  coupons: loadDynamicCoupons(),
   reviews: [],
   siteSettings: loadedSettings?.siteSettings || {
     id: 1,
@@ -361,12 +384,51 @@ export async function query(sqlText, params = []) {
       }
       if (sqlUpper.includes('FROM ORDERS')) return memoryStore.orders;
       if (sqlUpper.includes('FROM REVIEWS')) return memoryStore.reviews;
-      if (sqlUpper.includes('FROM COUPONS')) return memoryStore.coupons;
+      if (sqlUpper.includes('FROM COUPONS')) {
+        if (params.length > 0 && typeof params[0] === 'string') {
+          const targetCode = params[0].trim().toUpperCase();
+          return memoryStore.coupons.filter(c => c.code && c.code.trim().toUpperCase() === targetCode);
+        }
+        return memoryStore.coupons.map(c => ({
+          id: c.id,
+          code: c.code,
+          discountType: c.discount_type || c.discountType || 'percentage',
+          discountValue: parseFloat(c.discount_value || c.discountValue || 0),
+          minSpend: parseFloat(c.min_spend || c.minSpend || 0),
+          expiryDate: c.expiry_date || c.expiryDate || '2027-12-31',
+          usageCount: parseInt(c.usage_count || c.usageCount || 0, 10),
+          isActive: c.is_active !== undefined ? Boolean(c.is_active) : true,
+          discount_type: c.discount_type || c.discountType || 'percentage',
+          discount_value: c.discount_value || c.discountValue || 0,
+          min_spend: c.min_spend || c.minSpend || 0,
+          expiry_date: c.expiry_date || c.expiryDate || '2027-12-31'
+        }));
+      }
       if (sqlUpper.includes('FROM PAYMENT_SETTINGS')) return [memoryStore.paymentSettings];
       if (sqlUpper.includes('FROM SITE_SETTINGS')) return [memoryStore.siteSettings];
       if (sqlUpper.includes('FROM SHIPPING_SETTINGS')) return [memoryStore.shippingSettings];
       if (sqlUpper.includes('FROM TAX_SETTINGS')) return [memoryStore.taxSettings];
       return [{ count: 1, total: 0 }];
+    } else if (sqlUpper.startsWith('INSERT INTO COUPONS')) {
+      const [cId, code, discountType, discountValue, minSpend, expiryDate] = params;
+      const newCoupon = {
+        id: cId,
+        code: code ? code.toUpperCase() : '',
+        discount_type: discountType || 'percentage',
+        discount_value: parseFloat(discountValue || 0),
+        min_spend: parseFloat(minSpend || 0),
+        expiry_date: expiryDate || '2027-12-31',
+        usage_count: 0,
+        is_active: 1
+      };
+      memoryStore.coupons.unshift(newCoupon);
+      saveDynamicCoupons(memoryStore.coupons);
+      return [{ id: 1, changes: 1 }];
+    } else if (sqlUpper.startsWith('DELETE FROM COUPONS')) {
+      const targetId = params[0];
+      memoryStore.coupons = memoryStore.coupons.filter(c => c.id !== targetId && c.code !== targetId);
+      saveDynamicCoupons(memoryStore.coupons);
+      return [{ id: 1, changes: 1 }];
     } else if (sqlUpper.startsWith('UPDATE PAYMENT_SETTINGS')) {
       const [qrEnabled, upiId, accountHolder, qrImageUrl, qrInstructions, bankEnabled, bankName, accountNumber, ifscCode, branch, bankInstructions, codEnabled] = params;
       memoryStore.paymentSettings = {
