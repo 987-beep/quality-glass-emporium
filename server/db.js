@@ -55,6 +55,28 @@ function saveDynamicProducts(prods) {
 
 let dynamicAdminProducts = loadDynamicProducts();
 
+// Dynamic Registered Users File Persistence Helper
+const usersJsonPath = path.join(__dirname, 'users_store.json');
+
+function loadDynamicUsers() {
+  try {
+    if (fs.existsSync(usersJsonPath)) {
+      const raw = fs.readFileSync(usersJsonPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+function saveDynamicUsers(users) {
+  try {
+    fs.writeFileSync(usersJsonPath, JSON.stringify(users, null, 2), 'utf8');
+  } catch {}
+}
+
+let dynamicRegisteredUsers = loadDynamicUsers();
+
 // Staff Admin Accounts (Owner & Developer)
 export const defaultUsers = [
   { id: "usr-1", name: "Ajmal (Owner)", username: "@OWNERAJMAL69", password: "AJMA6958@", role: "owner" },
@@ -152,7 +174,7 @@ const memoryStore = {
   products: [...defaultProducts, ...dynamicAdminProducts],
   categories: [...defaultCategories],
   banners: [...defaultBanners],
-  users: [...defaultUsers],
+  users: [...defaultUsers, ...dynamicRegisteredUsers],
   orders: [],
   coupons: [],
   reviews: [],
@@ -293,6 +315,8 @@ export async function query(sqlText, params = []) {
       const [newId, name, username, password, role] = params;
       const newUser = { id: newId, name, username, password, role: role || 'customer', created_at: new Date().toISOString() };
       memoryStore.users.push(newUser);
+      dynamicRegisteredUsers.push(newUser);
+      saveDynamicUsers(dynamicRegisteredUsers);
       return [{ id: 1, changes: 1 }];
     } else if (sqlUpper.startsWith('UPDATE ORDERS')) {
       const orderId = params[params.length - 1];
