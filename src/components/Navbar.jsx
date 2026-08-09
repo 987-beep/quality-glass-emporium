@@ -12,7 +12,7 @@ export function Navbar({ activePage, setActivePage, cartCount, user, onOpenAuth,
   };
 
   return (
-    <nav className="bg-background/95 backdrop-blur-md fixed top-0 w-full z-50 border-b border-outline-variant transition-colors duration-300">
+    <nav className="sticky top-0 left-0 right-0 w-full z-50 bg-background/95 backdrop-blur-md border-b border-outline-variant transition-colors duration-300 shadow-lg">
       <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop flex justify-between items-center h-20">
         
         {/* Store Logo & Title */}
