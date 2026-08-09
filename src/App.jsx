@@ -156,7 +156,7 @@ export default function App() {
       )}
 
       {/* Main Page Workspace */}
-      <main className={`flex-1 ${activePage !== 'admin-dashboard' ? 'pt-20' : ''}`}>
+      <main className="flex-1">
         
         {activePage === 'home' && (
           <Home
