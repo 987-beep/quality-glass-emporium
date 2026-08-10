@@ -1,20 +1,152 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quality Glass Emporium | Photo Studio, Bespoke Frames & Customized Gifts</title>
-    <meta name="description" content="Quality Glass Emporium & Photo Studio. Premium bespoke photo frames, acrylic sheets, canvas prints, passport photos, customized gifts, photo lamps, mugs, T-shirts & keychains." />
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Google Material Symbols -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  </head>
-  <body class="bg-background text-on-background font-sans antialiased selection:bg-surface-container-high selection:text-primary min-h-screen">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quality Glass Emporium And Photo Framing Center - Raebareli</title>
+  <meta name="description" content="Premier photo framing, custom glass cut-to-size, acrylic floating frames, and decorative mirrors in Raebareli, UP.">
+
+  <!-- Tailwind CSS & Plugins -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Google Fonts & Material Symbols -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+  <!-- Artisan Clarity Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#00162c",
+            "primary-container": "#002b4d",
+            "secondary": "#005faf",
+            "secondary-container": "#479afd",
+            "tertiary-gold": "#ae8b46",
+            "surface": "#fcf9f8",
+            "surface-container": "#f0edec",
+            "surface-container-low": "#f6f3f2",
+            "on-surface": "#1c1b1b",
+            "on-surface-variant": "#43474e",
+            "charcoal-bg": "#1A1C1E",
+            "glass-tint": "#F4F7F9",
+            "success-green": "#117B01",
+            "subtle-gray": "#777777",
+            "error": "#ba1a1a"
+          },
+          fontFamily: {
+            sans: ["Manrope", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col antialiased selection:bg-secondary selection:text-white">
+  <!-- Toast Notification Bar -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 pointer-events-none"></div>
+
+  <!-- Header Anchor -->
+  <div id="header-root"></div>
+
+  <!-- Main View Container -->
+  <main id="app-root" class="flex-grow w-full max-w-[1280px] mx-auto px-4 md:px-12 py-8">
+    <!-- View content rendered dynamically -->
+    <div class="text-center py-20">
+      <div class="inline-block animate-spin text-secondary material-symbols-outlined text-4xl">progress_activity</div>
+      <div class="text-xs text-subtle-gray mt-2">Loading Quality Glass Emporium...</div>
+    </div>
+  </main>
+
+  <!-- Footer Anchor -->
+  <div id="footer-root"></div>
+
+  <!-- Application Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/seedData.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/store.js"></script>
+  
+  <!-- Components -->
+  <script src="js/components/header.js"></script>
+  <script src="js/components/footer.js"></script>
+  <script src="js/components/productCard.js"></script>
+  <script src="js/components/frameConfigurator.js"></script>
+  <script src="js/components/adminSidebar.js"></script>
+
+  <!-- Views -->
+  <script src="js/views/homeView.js"></script>
+  <script src="js/views/catalogView.js"></script>
+  <script src="js/views/productDetailView.js"></script>
+  <script src="js/views/cartView.js"></script>
+  <script src="js/views/checkoutView.js"></script>
+  <script src="js/views/customerView.js"></script>
+  <script src="js/views/loginView.js"></script>
+  <script src="js/views/adminView.js"></script>
+
+  <!-- App Mount Controller -->
+  <script>
+    async function renderApp() {
+      const store = window.appStore;
+      const view = store.currentView;
+
+      // Render Header & Footer
+      document.getElementById('header-root').innerHTML = window.renderHeader();
+      document.getElementById('footer-root').innerHTML = window.renderFooter();
+
+      // Render Main Content
+      const appRoot = document.getElementById('app-root');
+
+      if (view === 'home') {
+        appRoot.innerHTML = window.renderHomeView();
+      } else if (view === 'catalog') {
+        appRoot.innerHTML = window.renderCatalogView();
+      } else if (view === 'configurator') {
+        appRoot.innerHTML = `<div class="animate-fade-in">${window.renderFrameConfigurator()}</div>`;
+      } else if (view === 'product-detail') {
+        appRoot.innerHTML = window.renderProductDetailView();
+      } else if (view === 'cart') {
+        appRoot.innerHTML = window.renderCartView();
+      } else if (view === 'checkout') {
+        appRoot.innerHTML = window.renderCheckoutView();
+      } else if (view === 'customer') {
+        appRoot.innerHTML = await window.renderCustomerView();
+      } else if (view === 'login') {
+        appRoot.innerHTML = window.renderLoginView();
+      } else if (view === 'admin') {
+        appRoot.innerHTML = await window.renderAdminView();
+      } else {
+        appRoot.innerHTML = window.renderHomeView();
+      }
+
+      // Render Toast
+      const toastContainer = document.getElementById('toast-container');
+      if (store.toast) {
+        toastContainer.innerHTML = `
+          <div class="pointer-events-auto bg-primary text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-white/20 animate-fade-in">
+            <span class="material-symbols-outlined text-emerald-400">check_circle</span>
+            <span class="text-xs font-bold">${store.toast.message}</span>
+          </div>
+        `;
+      } else {
+        toastContainer.innerHTML = '';
+      }
+    }
+
+    // Subscribe store listener to auto re-render
+    window.appStore.subscribe(() => renderApp());
+
+    // Initial boot
+    document.addEventListener('DOMContentLoaded', () => {
+      renderApp();
+    });
+  </script>
+</body>
 </html>
