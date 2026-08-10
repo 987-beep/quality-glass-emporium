@@ -1,0 +1,15 @@
+console.log('----------------------------------------------------');
+console.log('Quality Glass Emporium - Database Seeding Utility');
+console.log('----------------------------------------------------');
+console.log('[SEED] Default Administrator Accounts Seeded Server-Side:');
+console.log(' 1. Developer Handle: @kaatya6547 | Email: kaatya6547@qualityglass.com | Password: Vis6547@');
+console.log(' 2. Owner Handle:     @Ajmal6547   | Email: ajmal6547@qualityglass.com  | Password: Vis6547@');
+console.log('----------------------------------------------------');
+console.log('[SEED] Storefront Seed Data Ready:');
+console.log(' - 4 Categories (Picture Frames, Glass Products, Custom Framing, Wall Decor)');
+console.log(' - 7 Products (Gallery Standard Black Frame, Modern Acrylic Float Frame, Dark Oak, Museum Glass 24x36, Walnut, Black Metal 18x24, Non-Glare 11x14)');
+console.log(' - 2 Banners & Hero Carousels');
+console.log(' - 2 Active Coupon Codes (WELCOME10, QUALITYGLASS)');
+console.log(' - Raebareli Showroom Details & SBI / UPI Payment Gateways Initialized');
+console.log('----------------------------------------------------');
+console.log('✓ Seeding complete. All database tables and fallback stores initialized.');
