@@ -1,16 +1,16 @@
 {
-  "rewrites": [
+  "version": 2,
+  "name": "quality-glass-emporium",
+  "builds": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/index.js"
-    },
+      "src": "index.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
     {
-      "source": "/uploads/:path*",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
