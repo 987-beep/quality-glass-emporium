@@ -13,15 +13,15 @@ export function MobileNav() {
   const { user, isAdmin } = useAuth();
 
   // Hide mobile nav on admin pages to allow full sidebar access
-  if (pathname.startsWith('/admin')) {
+  if (pathname?.startsWith('/admin')) {
     return null;
   }
 
   const items = [
     { label: 'Home', href: '/', icon: Home, active: pathname === '/' },
-    { label: 'Collections', href: '/products', icon: Grid, active: pathname.startsWith('/products') },
+    { label: 'Collections', href: '/products', icon: Grid, active: !!pathname && pathname.startsWith('/products') },
     { label: 'Cart', href: '/cart', icon: ShoppingCart, active: pathname === '/cart', badge: itemCount },
-    { label: 'Profile', href: user ? '/account' : '/login', icon: User, active: pathname.startsWith('/account') || pathname === '/login' },
+    { label: 'Profile', href: user ? '/account' : '/login', icon: User, active: !!pathname && (pathname.startsWith('/account') || pathname === '/login') },
   ];
 
   if (isAdmin) {
@@ -29,7 +29,7 @@ export function MobileNav() {
       label: 'Admin',
       href: '/admin',
       icon: Shield,
-      active: pathname.startsWith('/admin')
+      active: !!pathname && pathname.startsWith('/admin')
     });
   }
 
